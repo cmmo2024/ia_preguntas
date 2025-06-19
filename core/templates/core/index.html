@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Pregunta a la IA</h2>
+<form method="post" class="mb-4">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Enviar</button>
+</form>
+
+<h4>Mis últimas preguntas</h4>
+<div class="list-group">
+    {% for conv in conversations %}
+    <a href="#" class="list-group-item list-group-item-action">
+        <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
+        <strong>{{ conv.get_topic_display }}</strong><br>
+        <em>{{ conv.question }}</em><br>
+        <p>{{ conv.response }}</p>
+    </a>
+    {% empty %}
+    <p>No tienes historial aún.</p>
+    {% endfor %}
+</div>
+{% endblock %}

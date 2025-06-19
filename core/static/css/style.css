@@ -1,0 +1,7 @@
+body {
+    padding-top: 20px;
+}
+.list-group-item p {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
