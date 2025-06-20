@@ -8,6 +8,10 @@ from django.contrib import messages
 from .forms import QuestionForm, RegisterForm, LoginForm
 from .models import Conversation
 from django.contrib.auth.models import User
+import os
+from dotenv import load_dotenv
+
+
 
 def register_view(request):
     if request.method == 'POST':
@@ -57,7 +61,8 @@ def logout_view(request):
     return redirect('login')
 
 def index(request):
-    OPENROUTER_API_KEY = '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'  # Reemplaza por tu clave real
+    load_dotenv()  # Carga las variables del .env
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
     if request.method == 'POST':
         form = QuestionForm(request.POST)
