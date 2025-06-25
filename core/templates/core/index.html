@@ -1,9 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Pregunta a la IA</h2>
-<form method="post" class="mb-4">
+<form method="post" class="mb-4" id="question-form">
     {% csrf_token %}
-    {{ form.as_p }}
+    <div class="mb-3">
+        {{ form.subject.label_tag }}
+        {{ form.subject }}
+    </div>
+    <div class="mb-3">
+        {{ form.topic.label_tag }}
+        {{ form.topic }}
+    </div>
+    <div class="mb-3">
+        {{ form.model.label_tag }}
+        {{ form.model }}
+    </div>
+    <div class="mb-3">
+        {{ form.question.label_tag }}
+        {{ form.question }}
+    </div>
     <button type="submit" class="btn btn-primary">Enviar</button>
 </form>
 
@@ -12,7 +27,7 @@
     {% for conv in conversations %}
     <a href="#" class="list-group-item list-group-item-action">
         <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
-        <strong>{{ conv.get_topic_display }}</strong><br>
+        <strong>{{ conv.topic.subject }} → {{ conv.topic }}</strong><br>
         <em>{{ conv.question }}</em><br>
         <p>{{ conv.response }}</p>
     </a>
@@ -20,4 +35,40 @@
     <p>No tienes historial aún.</p>
     {% endfor %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const subjectSelect = document.querySelector('#id_subject');
+    const topicSelect = document.querySelector('#id_topic');
+
+    function loadTopics(subjectId) {
+        fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
+            .then(response => response.json())
+            .then(data => {
+                topicSelect.innerHTML = '<option value="">---------</option>';
+                data.topics.forEach(function (topic) {
+                    const option = document.createElement('option');
+                    option.value = topic.id;
+                    option.text = topic.name;
+                    topicSelect.appendChild(option);
+                });
+            });
+    }
+
+    subjectSelect.addEventListener('change', function () {
+        const subjectId = this.value;
+        if (subjectId) {
+            loadTopics(subjectId);
+        } else {
+            topicSelect.innerHTML = '<option value="">---------</option>';
+        }
+    });
+
+    // Cargar temas iniciales si hay asignatura seleccionada
+    const selectedSubject = subjectSelect.value;
+    if (selectedSubject) {
+        loadTopics(selectedSubject);
+    }
+});
+</script>
 {% endblock %}

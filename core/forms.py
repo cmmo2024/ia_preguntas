@@ -1,9 +1,16 @@
 from django import forms
-from .models import TOPICS
+from .models import Subject, Topic
+
+IA_MODELS = (
+    ('mistralai/mistral-7b-instruct:free', 'Mistral 7B'),
+    ('qwen/qwen-2.5-72b-instruct:free', 'Qwen 2.5'),
+)
 
 class QuestionForm(forms.Form):
-    topic = forms.ChoiceField(choices=TOPICS, label="Tema")
+    subject = forms.ModelChoiceField(queryset=Subject.objects.all(), label="Asignatura")
+    topic = forms.ModelChoiceField(queryset=Topic.objects.none(), label="Tema")  # Se ajustará dinámicamente
     question = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), label="Tu pregunta")
+    model = forms.ChoiceField(choices=IA_MODELS, label="Modelo de IA")
 
 class RegisterForm(forms.Form):
     username = forms.CharField(label="Usuario", max_length=100)
