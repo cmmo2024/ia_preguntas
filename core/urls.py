@@ -8,4 +8,7 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('ajax/load-topics/', views.load_topics, name='ajax_load_topics'),
+    # 👇 Nuevas rutas
+    path('acerca-de/', views.about_view, name='about'),
+    path('ayuda/', views.help_view, name='help'),
 ]

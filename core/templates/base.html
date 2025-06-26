@@ -25,12 +25,16 @@
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav">
 
-                <!-- Opciones visibles solo si el usuario está logueado -->
                 {% if user.is_authenticated %}
 
-                    <!-- Mostrar nombre de usuario -->
-                    <li class="nav-item disabled me-3">
-                        <span class="nav-link fw-bold">{{ user.username }}</span>
+                    <!-- Avatar con nombre de usuario -->
+                    <li class="nav-item me-3 d-flex align-items-center">
+                        <div class="d-flex align-items-center">
+                            <span class="badge rounded-circle bg-primary text-white px-3 py-2 me-2">
+                                {{ user.username|slice:"0:1"|upper }}
+                            </span>
+                            <span class="text-white">{{ user.username }}</span>
+                        </div>
                     </li>
 
                     <!-- Perfil -->
@@ -64,6 +68,14 @@
                     </li>
 
                 {% endif %}
+
+                <!-- Opciones visibles para todos -->
+                <li class="nav-item mt-2 mt-lg-0">
+                    <a class="nav-link" href="{% url 'about' %}">Acerca de</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
+                </li>
 
             </ul>
         </div>

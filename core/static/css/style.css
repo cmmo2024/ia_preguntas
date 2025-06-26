@@ -5,3 +5,12 @@ body {
     white-space: pre-wrap;
     word-break: break-word;
 }
+.badge.rounded-circle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    background-color: #0d6efd;
+}

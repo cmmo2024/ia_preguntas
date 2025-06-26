@@ -1,0 +1,27 @@
+<!-- templates/core/help.html -->
+
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Centro de Ayuda</h1>
+
+<h3>¿Cómo uso la aplicación?</h3>
+<ol>
+    <li>Inicia sesión o regístrate si no tienes cuenta.</li>
+    <li>Desde la página principal, selecciona una asignatura y un tema.</li>
+    <li>Escribe tu pregunta y haz clic en "Enviar".</li>
+    <li>La IA responderá y se guardará automáticamente en tu historial.</li>
+</ol>
+
+<h3>¿Qué modelos de IA están disponibles?</h3>
+<p>Puedes elegir entre estos modelos gratuitos:</p>
+<ul>
+    <li>Mistral 7B</li>
+    <li>Qwen 2.5</li>
+</ul>
+
+<h3>¿Puedo ver mi historial?</h3>
+<p>Sí, puedes acceder a tu historial completo desde el menú hamburguesa.</p>
+
+<h3>¿Tienes más preguntas?</h3>
+<p>Contáctanos en <a href="mailto:tucorreo@example.com">tucorreo@example.com</a></p>
+{% endblock %}

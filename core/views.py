@@ -120,3 +120,9 @@ def load_topics(request):
     subject_id = request.GET.get('subject')
     topics = Topic.objects.filter(subject_id=subject_id).values('id', 'name')
     return JsonResponse({'topics': list(topics)})
+
+def about_view(request):
+    return render(request, 'core/about.html')
+
+def help_view(request):
+    return render(request, 'core/help.html')
