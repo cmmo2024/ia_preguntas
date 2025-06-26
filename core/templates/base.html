@@ -9,10 +9,10 @@
 </head>
 <body>
 
-<!-- templates/base.html -->
-
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
+
+        <!-- Logo / Nombre de la app -->
         <a class="navbar-brand" href="/">Chat con IA</a>
 
         <!-- Botón hamburguesa -->
@@ -21,32 +21,50 @@
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <!-- Menú desplegable -->
+        <!-- Barra de navegación -->
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul class="navbar-nav align-items-center">
+            <ul class="navbar-nav">
 
+                <!-- Opciones visibles solo si el usuario está logueado -->
                 {% if user.is_authenticated %}
-                <li class="nav-item dropdown me-3">
-                    <a class="nav-link dropdown-toggle btn btn-outline-light btn-sm" href="#" role="button"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                        Opciones
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark">
-                        <li><a class="dropdown-item" href="/perfil/">Perfil</a></li>
-                        <li><a class="dropdown-item" href="/historial/">Historial completo</a></li>
-                        <li><a class="dropdown-item" href="/configuracion/">Configuración</a></li>
-                    </ul>
-                </li>
 
-                <!-- Botón de logout -->
-                <li class="nav-item">
-                    <a href="{% url 'logout' %}" class="btn btn-outline-light">Cerrar sesión</a>
-                </li>
+                    <!-- Mostrar nombre de usuario -->
+                    <li class="nav-item disabled me-3">
+                        <span class="nav-link fw-bold">{{ user.username }}</span>
+                    </li>
+
+                    <!-- Perfil -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/perfil/">Perfil</a>
+                    </li>
+
+                    <!-- Historial completo -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/historial/">Historial completo</a>
+                    </li>
+
+                    <!-- Configuración -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/configuracion/">Configuración</a>
+                    </li>
+
+                    <!-- Separador -->
+                    <li class="nav-item dropdown-divider"></li>
+
+                    <!-- Cerrar sesión -->
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{% url 'logout' %}">Cerrar sesión</a>
+                    </li>
+
                 {% else %}
-                <li class="nav-item">
-                    <a href="{% url 'login' %}" class="btn btn-outline-light">Iniciar sesión</a>
-                </li>
+
+                    <!-- Iniciar sesión -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Iniciar sesión</a>
+                    </li>
+
                 {% endif %}
+
             </ul>
         </div>
     </div>
