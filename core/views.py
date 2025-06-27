@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from .forms import QuestionForm, RegisterForm, LoginForm
 from .models import Conversation, Topic
 from dotenv import load_dotenv
+from django.contrib.auth.models import User  # 👈 Añade esta línea
 
 def logout_view(request):
     logout(request)
