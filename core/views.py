@@ -54,7 +54,7 @@ def login_view(request):
 @login_required
 def index(request):
     load_dotenv()  # Carga las variables del .env
-    print(os.getenv("OPENROUTER_API_KEY"))  # Para probarla desde consola
+    #print(os.getenv("OPENROUTER_API_KEY"))  # Para probarla desde consola
     if request.method == 'POST':
         form = QuestionForm(request.POST)
         # Actualizar queryset de topic
@@ -69,8 +69,7 @@ def index(request):
             selected_topic_id = form.cleaned_data['topic']
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
-            print("Modelo seleccionado:", selected_model)  # 👈 Verifica qué valor llega
-
+           # print("Modelo seleccionado:", selected_model)  # 👈 Verifica qué valor llega
             try:
                 response = requests.post(
                     url="https://openrouter.ai/api/v1/chat/completions", 
