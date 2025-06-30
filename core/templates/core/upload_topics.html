@@ -1,0 +1,34 @@
+<!-- templates/core/upload_topics.html -->
+
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Cargar temas desde archivo</h2>
+
+<!-- Mensaje de éxito -->
+{% if messages %}
+<div class="alert alert-success">
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Subir temas</button>
+</form>
+
+<!-- Botón Volver al inicio -->
+<a href="{% url 'index' %}" class="btn btn-outline-secondary mt-3">Volver al inicio</a>
+
+<!-- Ejemplo de formato -->
+<h4 class="mt-4">Ejemplo de formato:</h4>
+<pre>
+Álgebra: Una rama de las matemáticas que usa símbolos y reglas para resolver problemas.
+Cálculo: Estudio de cambios continuos, incluye derivadas e integrales.
+Biología celular: Estudio de las células y sus funciones.
+</pre>
+
+{% endblock %}

@@ -11,4 +11,6 @@ urlpatterns = [
     # 👇 Nuevas rutas
     path('acerca-de/', views.about_view, name='about'),
     path('ayuda/', views.help_view, name='help'),
+     # 👇 Nueva ruta para carga masiva de temas
+   # path('admin/upload-topics/', views.upload_topics_view, name='upload_topics'),
 ]

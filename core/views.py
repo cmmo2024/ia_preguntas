@@ -126,3 +126,47 @@ def about_view(request):
 
 def help_view(request):
     return render(request, 'core/help.html')
+
+
+from django.contrib.auth.decorators import user_passes_test
+from django.core.exceptions import PermissionDenied
+from django.core.files.uploadedfile import UploadedFile
+
+def is_superuser(user):
+    if not user.is_superuser:
+        raise PermissionDenied("Acceso denegado.")
+    return True
+
+@user_passes_test(is_superuser, login_url='index')
+def upload_topics_view(request):
+    from .forms import UploadTopicsForm
+    from .models import Subject, Topic
+
+    if request.method == 'POST':
+        form = UploadTopicsForm(request.POST, request.FILES)
+        if form.is_valid():
+            subject = form.cleaned_data['subject']
+            uploaded_file = request.FILES['file']
+
+            try:
+                decoded_file = uploaded_file.read().decode('utf-8')
+                lines = decoded_file.split('\n')
+
+                for line in lines:
+                    if ':' in line:
+                        name, description = line.strip().split(':', 1)
+                        Topic.objects.update_or_create(
+                            subject=subject,
+                            name=name.strip(),
+                            defaults={'description': description.strip()}
+                        )
+                messages.success(request, "✅ Temas cargados correctamente.")
+            except Exception as e:
+                messages.error(request, f"❌ Error al procesar el archivo: {e}")
+        else:
+            messages.error(request, "⚠️ Formulario inválido. Verifica los datos.")
+
+    else:
+        form = UploadTopicsForm()
+
+    return render(request, 'core/upload_topics.html', {'form': form})

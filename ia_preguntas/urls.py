@@ -15,9 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path, include
+from core.views import upload_topics_view  # 👈 Importa tu vista aquí
 from django.contrib import admin
 
 urlpatterns = [
+     # 👇 Nueva ruta personalizada ANTES de 'include("core.urls")'
+    path('admin/upload-topics/', upload_topics_view, name='upload_topics'),
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
 ]

@@ -20,3 +20,7 @@ class RegisterForm(forms.Form):
 class LoginForm(forms.Form):
     username = forms.CharField(label="Usuario")
     password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
+
+class UploadTopicsForm(forms.Form):
+    subject = forms.ModelChoiceField(queryset=Subject.objects.all(), label="Selecciona la asignatura")
+    file = forms.FileField(label="Archivo .txt con temas", help_text="Formato: nombre_tema: descripción_tema")

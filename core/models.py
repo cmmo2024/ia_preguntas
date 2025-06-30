@@ -13,9 +13,10 @@ class Subject(models.Model):
 class Topic(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Asignatura")
     name = models.CharField(max_length=100, verbose_name="Nombre")
+    description = models.TextField(verbose_name="Descripción", blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.subject} - {self.name}"
 
 
 class Conversation(models.Model):
