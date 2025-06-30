@@ -22,5 +22,4 @@ class LoginForm(forms.Form):
     password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
 
 class UploadTopicsForm(forms.Form):
-    subject = forms.ModelChoiceField(queryset=Subject.objects.all(), label="Selecciona la asignatura")
-    file = forms.FileField(label="Archivo .txt con temas", help_text="Formato: nombre_tema: descripción_tema")
+    file = forms.FileField(label="Archivo .txt con temas", help_text="El nombre del archivo será el nombre de la asignatura. Formato: nombre_tema: descripción_tema")

@@ -132,26 +132,40 @@ from django.contrib.auth.decorators import user_passes_test
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
 
+from .forms import UploadTopicsForm
+from .models import Subject, Topic
+import chardet
+
 def is_superuser(user):
-    if not user.is_superuser:
-        raise PermissionDenied("Acceso denegado.")
-    return True
+    return user.is_superuser
 
 @user_passes_test(is_superuser, login_url='index')
 def upload_topics_view(request):
-    from .forms import UploadTopicsForm
-    from .models import Subject, Topic
-
     if request.method == 'POST':
         form = UploadTopicsForm(request.POST, request.FILES)
         if form.is_valid():
-            subject = form.cleaned_data['subject']
             uploaded_file = request.FILES['file']
 
+            # 👇 Nombre del archivo sin extensión → nombre de la asignatura
+            subject_name = os.path.splitext(uploaded_file.name)[0].replace('_', ' ').title()
+
+            # 👇 Crear o obtener asignatura
+            subject, created = Subject.objects.get_or_create(name=subject_name)
+
+            if not created:
+                messages.warning(request, f"⚠️ La asignatura '{subject_name}' ya existía.")
+            else:
+                messages.success(request, f"✅ Asignatura '{subject_name}' creada.")
+
             try:
-                decoded_file = uploaded_file.read().decode('utf-8')
+                raw_data = uploaded_file.read()
+                result = chardet.detect(raw_data)
+                encoding = result['encoding'] or 'utf-8'
+                decoded_file = raw_data.decode(encoding)
+
                 lines = decoded_file.split('\n')
 
+                count = 0
                 for line in lines:
                     if ':' in line:
                         name, description = line.strip().split(':', 1)
@@ -160,11 +174,16 @@ def upload_topics_view(request):
                             name=name.strip(),
                             defaults={'description': description.strip()}
                         )
-                messages.success(request, "✅ Temas cargados correctamente.")
+                        count += 1
+
+                messages.success(request, f"📚 Se cargaron {count} temas para '{subject_name}'.")
+            except UnicodeDecodeError as e:
+                messages.error(request, f"❌ Error al decodificar el archivo: {e}")
             except Exception as e:
-                messages.error(request, f"❌ Error al procesar el archivo: {e}")
+                messages.error(request, f"⚠️ Error al procesar el archivo: {e}")
+
         else:
-            messages.error(request, "⚠️ Formulario inválido. Verifica los datos.")
+            messages.error(request, "⚠️ Formulario inválido.")
 
     else:
         form = UploadTopicsForm()

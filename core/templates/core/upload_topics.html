@@ -5,11 +5,11 @@
 
 <h2>Cargar temas desde archivo</h2>
 
-<!-- Mensaje de éxito -->
+<!-- Mensaje de éxito/error -->
 {% if messages %}
 <div class="alert alert-success">
     {% for message in messages %}
-        <p>{{ message }}</p>
+    <p>{{ message }}</p>
     {% endfor %}
 </div>
 {% endif %}
@@ -20,11 +20,13 @@
     <button type="submit" class="btn btn-primary">Subir temas</button>
 </form>
 
-<!-- Botón Volver al inicio -->
 <a href="{% url 'index' %}" class="btn btn-outline-secondary mt-3">Volver al inicio</a>
 
-<!-- Ejemplo de formato -->
-<h4 class="mt-4">Ejemplo de formato:</h4>
+<p class="mt-4"><strong>Importante:</strong> El nombre del archivo será el nombre de la asignatura.</p>
+
+<p><strong>Ejemplo:</strong> Si subes un archivo llamado <code>matematicas.txt</code>, se creará la asignatura “Matematicas”.</p>
+
+<p><strong>Formato esperado:</strong></p>
 <pre>
 Álgebra: Una rama de las matemáticas que usa símbolos y reglas para resolver problemas.
 Cálculo: Estudio de cambios continuos, incluye derivadas e integrales.
