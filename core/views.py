@@ -68,9 +68,12 @@ def index(request):
             selected_subject = form.cleaned_data['subject']
             selected_topic_id = form.cleaned_data['topic']
             question = form.cleaned_data['question']
-            selected_model = form.cleaned_data['model']
-           # print("Modelo seleccionado:", selected_model)  # 👈 Verifica qué valor llega
+            selected_model = form.cleaned_data['model'] 
             try:
+                # 👇 Añadimos la descripción del tema al prompt
+                context = selected_topic_id.description or ""
+                full_prompt = f"Contexto: {context}\n\nPregunta: {question}"
+
                 response = requests.post(
                     url="https://openrouter.ai/api/v1/chat/completions", 
                     headers={
@@ -79,7 +82,11 @@ def index(request):
                     },
                     json={
                         "model": selected_model,
-                        "messages": [{"role": "user", "content": question}]
+                        "messages": [{"role": "user", "content": full_prompt}],
+                        # 👇 Limitamos los tokens de salida
+                        "max_tokens": 200,  # Cambia este número si necesitas más o menos tokens
+                        "temperature": 0.7,  # Más bajo = más preciso | Más alto = más creativo
+                        "top_p": 0.9,
                     }
                 )
 
