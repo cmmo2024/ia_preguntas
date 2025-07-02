@@ -25,12 +25,18 @@
 <h4>Mis últimas preguntas</h4>
 <div class="list-group">
     {% for conv in conversations %}
-    <a href="#" class="list-group-item list-group-item-action">
+    <div class="list-group-item list-group-item-action position-relative">
         <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
         <strong>{{ conv.topic.subject }} → {{ conv.topic }}</strong><br>
         <em>{{ conv.question }}</em><br>
         <p>{{ conv.response }}</p>
-    </a>
+
+        <!-- Botón eliminar -->
+        <form action="{% url 'delete_conversation' conv.id %}" method="post" class="position-absolute top-0 end-0 m-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
+        </form>
+    </div>
     {% empty %}
     <p>No tienes historial aún.</p>
     {% endfor %}

@@ -196,3 +196,14 @@ def upload_topics_view(request):
         form = UploadTopicsForm()
 
     return render(request, 'core/upload_topics.html', {'form': form})
+
+
+from .models import Conversation
+from django.shortcuts import get_object_or_404
+
+@login_required
+def delete_conversation(request, conv_id):
+    conversation = get_object_or_404(Conversation, id=conv_id, user=request.user)
+    conversation.delete()
+    messages.success(request, "✅ Conversación eliminada correctamente.")
+    return redirect('index')
