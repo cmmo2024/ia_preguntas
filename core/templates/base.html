@@ -25,7 +25,7 @@
         <!-- Barra de navegación -->
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav">
-
+            
                 {% if user.is_authenticated %}
 
                     <!-- Avatar con nombre de usuario -->
@@ -56,33 +56,40 @@
                     <!-- Separador -->
                     <li class="nav-item dropdown-divider"></li>
 
-                    <!-- Cerrar sesión -->
-                    <li class="nav-item">
-                        <a class="nav-link text-danger" href="{% url 'logout' %}">Cerrar sesión</a>
-                    </li>
                     {% if user.is_superuser %}
+                    <!-- Cargar temas -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'upload_topics' %}">Cargar temas</a>
                     </li>
                     {% endif %}
+                    <!-- Opciones visibles para todos -->
+                    <li class="nav-item mt-2 mt-lg-0">
+                        <a class="nav-link" href="{% url 'about' %}">Acerca de</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
+                    </li>
+
+
+                    <!-- ✅ Cerrar sesión SIEMPRE AL FINAL del menú autenticado -->
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold" href="{% url 'logout' %}">Cerrar sesión</a>
+                    </li>
 
                 {% else %}
-
-                    <!-- Iniciar sesión -->
+                    <!-- Opciones visibles para todos -->
+                    <li class="nav-item mt-2 mt-lg-0">
+                        <a class="nav-link" href="{% url 'about' %}">Acerca de</a>
+                    </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Iniciar sesión</a>
+                        <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
+                    </li>
+                    <!-- Iniciar sesión SIEMPRE AL FINAL del menú NO autenticado -->
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold" href="{% url 'login' %}">Iniciar sesión</a>
                     </li>
 
                 {% endif %}
-
-                <!-- Opciones visibles para todos -->
-                <li class="nav-item mt-2 mt-lg-0">
-                    <a class="nav-link" href="{% url 'about' %}">Acerca de</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
-                </li>
-
             </ul>
         </div>
     </div>

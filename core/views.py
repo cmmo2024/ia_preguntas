@@ -11,6 +11,10 @@ from dotenv import load_dotenv
 from django.contrib.auth.models import User  # 👈 Añade esta línea
 
 def logout_view(request):
+    # Opcional: Limpiar mensajes antes de cerrar sesión
+    storage = messages.get_messages(request)
+    for message in storage:
+        pass  # Esto "consume" los mensajes sin mostrar
     logout(request)
     return redirect('login')
 
@@ -204,6 +208,12 @@ from django.shortcuts import get_object_or_404
 @login_required
 def delete_conversation(request, conv_id):
     conversation = get_object_or_404(Conversation, id=conv_id, user=request.user)
+    if not conversation:
+        # Opcional: manejar caso donde no existe la conversación
+        messages.error(request, "⚠️ No se encontró esa conversación.")
+        return redirect('index')
     conversation.delete()
-    messages.success(request, "✅ Conversación eliminada correctamente.")
+     # Solo añadimos el mensaje si el usuario sigue autenticado
+    if request.user.is_authenticated:
+        messages.success(request, "✅ Conversación eliminada correctamente.")
     return redirect('index')
