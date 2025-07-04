@@ -1,0 +1,66 @@
+<!-- templates/core/exam_result.html -->
+
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Tu resultado</h2>
+<p>Acertaste <strong>{{ correct_count }} de {{ total }}</strong> preguntas.</p>
+
+<div class="mb-4">
+    {% for key, answer in user_answers.items %}
+    <div class="mb-3 p-3 border rounded {% if answer.is_correct %}border-success{% else %}border-danger{% endif %}">
+        <strong>Pregunta {{ forloop.counter }}:</strong> {{ answer.text }}
+        <ul class="mt-2 list-unstyled">
+            {% for i in "0123" %}
+            <li>
+                {% if i == "0" %}
+                    {% with answer.options.0 as option %}
+                        {% if "a" == answer.correct %}
+                            ✔️ {{ option }}
+                        {% elif "a" == answer.selected %}
+                            ❌ {{ option }}
+                        {% else %}
+                            – {{ option }}
+                        {% endif %}
+                    {% endwith %}
+                {% elif i == "1" %}
+                    {% with answer.options.1 as option %}
+                        {% if "b" == answer.correct %}
+                            ✔️ {{ option }}
+                        {% elif "b" == answer.selected %}
+                            ❌ {{ option }}
+                        {% else %}
+                            – {{ option }}
+                        {% endif %}
+                    {% endwith %}
+                {% elif i == "2" %}
+                    {% with answer.options.2 as option %}
+                        {% if "c" == answer.correct %}
+                            ✔️ {{ option }}
+                        {% elif "c" == answer.selected %}
+                            ❌ {{ option }}
+                        {% else %}
+                            – {{ option }}
+                        {% endif %}
+                    {% endwith %}
+                {% elif i == "3" %}
+                    {% with answer.options.3 as option %}
+                        {% if "d" == answer.correct %}
+                            ✔️ {{ option }}
+                        {% elif "d" == answer.selected %}
+                            ❌ {{ option }}
+                        {% else %}
+                            – {{ option }}
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>
+
+<a href="{% url 'index' %}" class="btn btn-primary">Volver al inicio</a>
+
+{% endblock %}

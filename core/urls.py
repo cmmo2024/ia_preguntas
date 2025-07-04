@@ -13,6 +13,7 @@ urlpatterns = [
     path('ayuda/', views.help_view, name='help'),
     # 👇 Nueva ruta para eliminar
     path('conversation/delete/<int:conv_id>/', views.delete_conversation, name='delete_conversation'),
-     # 👇 Nueva ruta para carga masiva de temas
-   # path('admin/upload-topics/', views.upload_topics_view, name='upload_topics'),
+    # 👇 Nuevas rutas para examen
+    path('exam/', views.exam_view, name='exam'),
+    path('exam/submit/', views.submit_exam, name='submit_exam'),
 ]

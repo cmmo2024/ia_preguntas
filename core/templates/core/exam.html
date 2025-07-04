@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Examen sobre 
+    {% if questions %}
+        {{ questions.0.text|truncatechars:50 }}
+    {% else %}
+        Tema
+    {% endif %}
+</h2>
+
+<form method="post" action="{% url 'submit_exam' %}">
+    {% csrf_token %}
+    {% for q in questions %}
+    <div class="mb-4 border p-3 rounded">
+        <strong>Pregunta {{ forloop.counter }}:</strong> {{ q.text }}
+        <ul class="mt-2 list-unstyled">
+            {% for option in q.options %}
+            <li>
+                <input type="radio" name="q{{ forloop.parentloop.counter }}" id="q{{ forloop.parentloop.counter }}_{{ forloop.counter }}" value="{{ forloop.counter0 }}" required>
+                <label for="q{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{{ option }}</label>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-success">Enviar respuestas</button>
+</form>
+
+{% endblock %}

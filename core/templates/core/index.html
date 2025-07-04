@@ -19,7 +19,10 @@
         {{ form.question.label_tag }}
         {{ form.question }}
     </div>
-    <button type="submit" class="btn btn-primary">Enviar</button>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Enviar Pregunta</button>
+        <button type="submit" name="generate_exam" value="1" class="btn btn-outline-success ms-2">Evaluación</button>
+    </div>
 </form>
 
 <h4>Mis últimas preguntas</h4>

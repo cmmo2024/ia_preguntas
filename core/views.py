@@ -58,9 +58,10 @@ def login_view(request):
 @login_required
 def index(request):
     load_dotenv()  # Carga las variables del .env
-    #print(os.getenv("OPENROUTER_API_KEY"))  # Para probarla desde consola
+
     if request.method == 'POST':
         form = QuestionForm(request.POST)
+
         # Actualizar queryset de topic
         if 'subject' in request.POST:
             try:
@@ -68,18 +69,74 @@ def index(request):
                 form.fields['topic'].queryset = Topic.objects.filter(subject_id=subject_id)
             except (ValueError, TypeError):
                 form.fields['topic'].queryset = Topic.objects.none()
+
         if form.is_valid():
             selected_subject = form.cleaned_data['subject']
             selected_topic_id = form.cleaned_data['topic']
             question = form.cleaned_data['question']
-            selected_model = form.cleaned_data['model'] 
+            selected_model = form.cleaned_data['model']
+
+            # 👇 Si se hizo clic en "Examen", generar preguntas tipo test
+            if 'generate_exam' in request.POST:
+                try:
+                    # Preparar el prompt para generar un examen
+                    prompt = f"""
+                    Genera 5 preguntas de opción múltiple sobre {selected_topic_id.name}.
+                    Cada pregunta debe tener 4 opciones (a, b, c, d) y señalar cuál es la correcta.
+                    
+                    Ejemplo de formato:
+                    
+                    PREGUNTA 1: ¿Cuál es la capital de Francia?
+                    a) Madrid
+                    b) París
+                    c) Roma
+                    d) Berlín
+                    Correcta: b
+                    
+                    ... (repetir para 7 preguntas)
+                    """
+
+                    response = requests.post(
+                        url="https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": selected_model,
+                            "messages": [{"role": "user", "content": prompt}],
+                            "max_tokens": 1000,
+                            "temperature": 0.3
+                        }
+                    )
+
+                    if response.status_code != 200:
+                        raise Exception(f"Error de API: {response.status_code} - {response.text}")
+
+                    ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+                    
+                    # Guardar en sesión para usar en la vista de examen
+                   # 👇 Procesar aquí y guardarlo ya listo para exam_result.html
+                    questions = parse_exam(ai_response)
+                    #print("Preguntas procesadas:", questions)  # ✅ Verifica que aparezca bien
+                    request.session['exam_questions'] = questions  # ✅ Guardamos ya procesado
+                    # request.session['exam_raw'] = ai_response  # Opcional para debugging
+
+                    request.session['exam_topic'] = str(selected_topic_id)
+                    return redirect('exam')
+
+                except Exception as e:
+                    messages.error(request, f"⚠️ Error al generar el examen: {e}")
+                    return redirect('index')
+
+            # 👇 Si no es examen, procesar normalmente
             try:
-                # 👇 Añadimos la descripción del tema al prompt
+                # Añadimos la descripción del tema al prompt
                 context = selected_topic_id.description or ""
                 full_prompt = f"Contexto: {context}\n\nPregunta: {question}"
 
                 response = requests.post(
-                    url="https://openrouter.ai/api/v1/chat/completions", 
+                    url="https://openrouter.ai/api/v1/chat/completions",
                     headers={
                         "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
                         "Content-Type": "application/json"
@@ -87,9 +144,8 @@ def index(request):
                     json={
                         "model": selected_model,
                         "messages": [{"role": "user", "content": full_prompt}],
-                        # 👇 Limitamos los tokens de salida
-                        "max_tokens": 200,  # Cambia este número si necesitas más o menos tokens
-                        "temperature": 0.7,  # Más bajo = más preciso | Más alto = más creativo
+                        "max_tokens": 200,
+                        "temperature": 0.7,
                         "top_p": 0.9,
                     }
                 )
@@ -98,7 +154,6 @@ def index(request):
                     raise Exception(f"Error de API: {response.status_code} - {response.text}")
 
                 ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', 'Sin respuesta.')
-                
 
                 Conversation.objects.create(
                     user=request.user,
@@ -110,14 +165,15 @@ def index(request):
             except Exception as e:
                 messages.error(request, f"⚠️ Error al comunicarse con la IA: {e}")
                 return redirect('index')
+
         else:
-            # 👇 Muestra los errores del formulario
+            # Muestra los errores del formulario
             print("Errores del formulario:", form.errors)
 
-            # 👇 También puedes mostrar un mensaje al usuario
             for field, errors in form.errors.items():
                 for error in errors:
-                    messages.error(request, f"Error en '{form.fields[field].label}': {error}")
+                    messages.error(request, f"⚠️ Error en '{form.fields[field].label}': {error}")
+
     else:
         form = QuestionForm(initial={'model': 'mistralai/mistral-7b-instruct:free'})
 
@@ -217,3 +273,122 @@ def delete_conversation(request, conv_id):
     if request.user.is_authenticated:
         messages.success(request, "✅ Conversación eliminada correctamente.")
     return redirect('index')
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+
+@login_required
+def exam_view(request):
+    # Obtenemos la lista de preguntas ya procesada
+    questions = request.session.get('exam_questions', [])
+
+    if not questions:
+        messages.error(request, "⚠️ No hay preguntas disponibles.")
+        return redirect('index')
+
+    return render(request, 'core/exam.html', {
+        'questions': questions
+    })
+
+
+import re
+
+def parse_exam(text):
+    if not isinstance(text, str):
+        raise ValueError("parse_exam() requiere un texto (str), no una lista u otro tipo")
+    text = re.sub(r'\r', '', text)
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    
+    questions = []
+    current_question = None
+
+    for line in lines:
+        q_match = re.match(r"PREGUNTA\s+(\d+):(.+)", line)
+        opt_match = re.match(r"([a-d])\)\s*(.+)", line)
+        correct_match = re.search(r"Correcta:\s*([a-d])", line)
+
+        if q_match:
+            if current_question:
+                questions.append(current_question)
+
+            current_question = {
+                'number': q_match.group(1),
+                'text': q_match.group(2).strip(),
+                'options': [],
+                'correct': ''
+            }
+
+        elif current_question and opt_match:
+            letter, option_text = opt_match.groups()
+            current_question['options'].append(option_text.strip())
+
+        elif current_question and correct_match:
+            current_question['correct'] = correct_match.group(1)
+
+    if current_question and len(current_question['options']) == 4:
+        questions.append(current_question)
+
+    return questions
+
+
+@login_required
+def submit_exam(request):
+    if request.method == 'POST':
+        questions = request.session.get('exam_questions', [])
+        #print("Type of questions:", type(questions))  # 👉 Debe mostrar <class 'list'>
+        #print("Questions:", questions)  # 👉 Debe mostrar la lista de preguntas
+        if not isinstance(questions, list):
+            messages.error(request, "⚠️ Datos del examen inválidos.")
+            return redirect('index')
+
+        user_answers = {}
+        correct_count = 0
+
+        for key in request.POST:
+            if key.startswith('q'):
+                suffix = key[1:]
+
+                # Verificar que sea dígito antes de convertir
+                if not suffix.isdigit():
+                    continue  # o mostrar mensaje de error
+
+                question_num = int(suffix) - 1
+
+                # Asegurarnos que el índice esté dentro del rango
+                if question_num < 0 or question_num >= len(questions):
+                    messages.warning(request, f"Pregunta {question_num + 1} fuera de rango.")
+                    continue
+
+                user_answer_index = request.POST.get(key)
+
+                if user_answer_index.isdigit():
+                    selected_index = int(user_answer_index)
+                    correct_letter = chr(97 + selected_index)
+                else:
+                    messages.warning(request, f"Selección inválida en pregunta {question_num + 1}")
+                    continue
+
+                # 👇 Aquí está la línea que fallaba:
+                correct_answer = questions[question_num]['correct']
+
+                is_correct = correct_letter == correct_answer
+                if is_correct:
+                    correct_count += 1
+
+                user_answers[key] = {
+                    'text': questions[question_num]['text'],
+                    'options': questions[question_num]['options'],
+                    'selected': correct_letter,
+                    'correct': correct_answer,
+                    'is_correct': is_correct
+                }
+
+        return render(request, 'core/exam_result.html', {
+            'user_answers': user_answers,
+            'total': len(questions),
+            'correct_count': correct_count
+        })
+
+    else:
+        return redirect('index')
