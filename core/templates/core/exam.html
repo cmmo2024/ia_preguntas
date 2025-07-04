@@ -1,13 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Examen sobre 
-    {% if questions %}
-        {{ questions.0.text|truncatechars:50 }}
-    {% else %}
-        Tema
-    {% endif %}
-</h2>
+<h2>Examen sobre {{ subject_name }} - {{ topic_name }}</h2>
 
 <form method="post" action="{% url 'submit_exam' %}">
     {% csrf_token %}

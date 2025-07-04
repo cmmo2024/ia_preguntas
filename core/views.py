@@ -72,7 +72,8 @@ def index(request):
 
         if form.is_valid():
             selected_subject = form.cleaned_data['subject']
-            selected_topic_id = form.cleaned_data['topic']
+            selected_topic = form.cleaned_data['topic']
+            topic_description = selected_topic.description or "No hay descripción."
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
 
@@ -81,7 +82,9 @@ def index(request):
                 try:
                     # Preparar el prompt para generar un examen
                     prompt = f"""
-                    Genera 5 preguntas de opción múltiple sobre {selected_topic_id.name}.
+                    Eres un profesor virtual. Genera 7 preguntas de opción múltiple sobre el tema '{selected_topic.name}' 
+                    de la asignatura '{selected_subject}'.
+                    Contexto: {topic_description}
                     Cada pregunta debe tener 4 opciones (a, b, c, d) y señalar cuál es la correcta.
                     
                     Ejemplo de formato:
@@ -121,8 +124,8 @@ def index(request):
                     #print("Preguntas procesadas:", questions)  # ✅ Verifica que aparezca bien
                     request.session['exam_questions'] = questions  # ✅ Guardamos ya procesado
                     # request.session['exam_raw'] = ai_response  # Opcional para debugging
-
-                    request.session['exam_topic'] = str(selected_topic_id)
+                    request.session['exam_subject'] = str(selected_subject)
+                    request.session['exam_topic'] = str(selected_topic)
                     return redirect('exam')
 
                 except Exception as e:
@@ -132,7 +135,7 @@ def index(request):
             # 👇 Si no es examen, procesar normalmente
             try:
                 # Añadimos la descripción del tema al prompt
-                context = selected_topic_id.description or ""
+                context = selected_topic.description or ""
                 full_prompt = f"Contexto: {context}\n\nPregunta: {question}"
 
                 response = requests.post(
@@ -157,7 +160,7 @@ def index(request):
 
                 Conversation.objects.create(
                     user=request.user,
-                    topic=selected_topic_id,
+                    topic=selected_topic,
                     question=question,
                     response=ai_response
                 )
@@ -280,15 +283,23 @@ from django.http import HttpResponse
 
 @login_required
 def exam_view(request):
-    # Obtenemos la lista de preguntas ya procesada
     questions = request.session.get('exam_questions', [])
+    topic_name = request.session.get('exam_topic', 'Tema')
+    subject_name = request.session.get('exam_subject', 'Asignatura')
 
     if not questions:
         messages.error(request, "⚠️ No hay preguntas disponibles.")
         return redirect('index')
 
+    # 👇 Obtenemos la asignatura y el tema desde la primera pregunta
+    #first_question = questions[0] if questions else None
+    #topic_name = first_question['topic'].name if 'topic' in first_question else "Tema"
+    #subject_name = first_question['subject'].name if 'subject' in first_question else "Asignatura"
+
     return render(request, 'core/exam.html', {
-        'questions': questions
+        'questions': questions,
+        'topic_name': topic_name,
+        'subject_name': subject_name
     })
 
 
