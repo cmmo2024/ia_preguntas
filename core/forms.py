@@ -10,7 +10,8 @@ class QuestionForm(forms.Form):
     subject = forms.ModelChoiceField(
         queryset=Subject.objects.all(), 
         label="Asignatura", 
-        empty_label="Selecciona una asignatura")
+        empty_label="Selecciona una asignatura",
+        widget=forms.Select(attrs={'class': 'form-select truncate'}))
     topic = forms.ModelChoiceField(
         queryset=Topic.objects.none(), 
         label="Tema", 
