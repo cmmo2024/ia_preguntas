@@ -58,9 +58,17 @@ def login_view(request):
 @login_required
 def index(request):
     load_dotenv()  # Carga las variables del .env
+    # 👇 Cargamos esto desde el principio
+    conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
 
     if request.method == 'POST':
-        form = QuestionForm(request.POST)
+        data = request.POST.copy()
+        # 👇 Si es "Examen", ponemos un valor temporal en 'question' para evitar error
+        if 'generate_exam' in request.POST:
+            if not data.get('question'):
+                data['question'] = "Campo no requerido"
+
+        form = QuestionForm(data)
 
         # Actualizar queryset de topic
         if 'subject' in request.POST:
@@ -133,41 +141,49 @@ def index(request):
                     return redirect('index')
 
             # 👇 Si no es examen, procesar normalmente
-            try:
-                # Añadimos la descripción del tema al prompt
-                context = selected_topic.description or ""
-                full_prompt = f"Contexto: {context}\n\nPregunta: {question}"
+            elif 'submit_question' in request.POST:
+                # 👇 Validación manual del campo 'question'
+                if not question.strip():
+                    messages.error(request, "⚠️ El campo 'Pregunta' es obligatorio.")
+                    return render(request, 'core/index.html', {
+                        'form': form,
+                        'conversations': conversations
+                    })
+                try:
+                    # Añadimos la descripción del tema al prompt
+                    context = selected_topic.description or ""
+                    full_prompt = f"Contexto: {context}\n\nPregunta: {question}"
 
-                response = requests.post(
-                    url="https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": selected_model,
-                        "messages": [{"role": "user", "content": full_prompt}],
-                        "max_tokens": 200,
-                        "temperature": 0.7,
-                        "top_p": 0.9,
-                    }
-                )
+                    response = requests.post(
+                        url="https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": selected_model,
+                            "messages": [{"role": "user", "content": full_prompt}],
+                            "max_tokens": 200,
+                            "temperature": 0.7,
+                            "top_p": 0.9,
+                        }
+                    )
 
-                if response.status_code != 200:
-                    raise Exception(f"Error de API: {response.status_code} - {response.text}")
+                    if response.status_code != 200:
+                        raise Exception(f"Error de API: {response.status_code} - {response.text}")
 
-                ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', 'Sin respuesta.')
+                    ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', 'Sin respuesta.')
 
-                Conversation.objects.create(
-                    user=request.user,
-                    topic=selected_topic,
-                    question=question,
-                    response=ai_response
-                )
+                    Conversation.objects.create(
+                        user=request.user,
+                        topic=selected_topic,
+                        question=question,
+                        response=ai_response
+                    )
 
-            except Exception as e:
-                messages.error(request, f"⚠️ Error al comunicarse con la IA: {e}")
-                return redirect('index')
+                except Exception as e:
+                    messages.error(request, f"⚠️ Error al comunicarse con la IA: {e}")
+                    return redirect('index')
 
         else:
             # Muestra los errores del formulario

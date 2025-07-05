@@ -9,7 +9,11 @@ IA_MODELS = (
 class QuestionForm(forms.Form):
     subject = forms.ModelChoiceField(queryset=Subject.objects.all(), label="Asignatura")
     topic = forms.ModelChoiceField(queryset=Topic.objects.none(), label="Tema")  # Se ajustará dinámicamente
-    question = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}), label="Tu pregunta")
+    question = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        label="Tu pregunta",
+        required=False  # 👈 Ahora no es obligatorio
+    )
     model = forms.ChoiceField(choices=IA_MODELS, label="Modelo de IA")
 
 class RegisterForm(forms.Form):
