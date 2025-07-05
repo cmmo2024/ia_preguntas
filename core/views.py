@@ -61,15 +61,33 @@ def index(request):
     # 👇 Cargamos esto desde el principio
     conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
 
+    # Cargar valores anteriores desde sesión
+    last_subject = request.session.get('last_subject')
+    last_topic = request.session.get('last_topic')
+    last_model = request.session.get('last_model')
+
+    initial_data = {}
+    form_data = request.POST.copy() if request.method == 'POST' else {}
+
+    # Valores iniciales solo si están disponibles
+    if last_subject:
+        initial_data['subject'] = last_subject
+    if last_topic:
+        initial_data['topic'] = last_topic
+    if last_model:
+        initial_data['model'] = last_model
+
+    # Inicializar formulario con valores guardados
+    form = QuestionForm(form_data or None, initial=initial_data)
+    # 👇 Si hay un subject_id, cargamos los topics para el topic field
+    if last_subject:
+        try:
+            subject_id = int(last_subject)
+            form.fields['topic'].queryset = Topic.objects.filter(subject_id=subject_id)
+        except (ValueError, TypeError):
+            form.fields['topic'].queryset = Topic.objects.none()
+
     if request.method == 'POST':
-        data = request.POST.copy()
-        # 👇 Si es "Examen", ponemos un valor temporal en 'question' para evitar error
-        if 'generate_exam' in request.POST:
-            if not data.get('question'):
-                data['question'] = "Campo no requerido"
-
-        form = QuestionForm(data)
-
         # Actualizar queryset de topic
         if 'subject' in request.POST:
             try:
@@ -84,6 +102,11 @@ def index(request):
             topic_description = selected_topic.description or "No hay descripción."
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
+
+            # Guardar en sesión para mantener selección
+            request.session['last_subject'] = str(selected_subject.id)
+            request.session['last_topic'] = str(selected_topic.id)
+            request.session['last_model'] = selected_model
 
             # 👇 Si se hizo clic en "Examen", generar preguntas tipo test
             if 'generate_exam' in request.POST:
@@ -186,17 +209,21 @@ def index(request):
                     return redirect('index')
 
         else:
-            # Muestra los errores del formulario
-            print("Errores del formulario:", form.errors)
+             # 👇 Guardar los datos actuales para mostrar errores
+            request.session['last_subject'] = request.POST.get('subject')
+            request.session['last_topic'] = request.POST.get('topic')
+            request.session['last_model'] = request.POST.get('model')
 
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"⚠️ Error en '{form.fields[field].label}': {error}")
 
     else:
-        form = QuestionForm(initial={'model': 'mistralai/mistral-7b-instruct:free'})
+        # Carga inicial
+        pass
+        form = QuestionForm(initial={'model': 'qwen/qwen-2.5-72b-instruct:free'})
 
-    conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
+    #conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
     return render(request, 'core/index.html', {
         'form': form,
         'conversations': conversations

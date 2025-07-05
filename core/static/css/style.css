@@ -99,3 +99,46 @@ ul, ol {
     color: red;
     font-weight: bold;
 }
+
+/* static/css/style.css */
+
+#id_topic {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+}
+
+#id_topic option {
+    white-space: break-spaces; /* Evita que el texto largo se salga */
+    word-wrap: break-word;     /* Rompe palabras largas */
+    overflow: hidden;          /* Oculta contenido excedente */
+}
+
+/* static/css/style.css */
+
+/* Truncar opciones largas */
+.truncate option {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px; /* Puedes ajustarlo según necesites */
+}
+
+/* En dispositivos móviles, forzamos el ancho máximo */
+@media (max-width: 768px) {
+    .form-select {
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+        font-size: 0.9rem;
+    }
+
+    .form-select option {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow: auto;
+        max-width: 250px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}
