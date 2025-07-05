@@ -18,7 +18,11 @@ class QuestionForm(forms.Form):
         empty_label="Selecciona un Tema",
         widget=forms.Select(attrs={'class': 'form-select truncate'}))
     question = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': 3}),
+        widget=forms.Textarea(attrs={
+            'rows': 3,
+            'class': 'form-control',
+            'placeholder': 'Escribe aquí tu pregunta...',
+            'style': 'width: 100%; resize: none;'}),
         label="Tu pregunta",
         required=False  # 👈 Ahora no es obligatorio
     )
