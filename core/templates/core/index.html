@@ -21,9 +21,12 @@
         {{ form.model.label_tag }}
         {{ form.model }}
     </div>
-    <div class="mb-3">
+    <div class="mb-3 position-relative">
         {{ form.question.label_tag }}
         {{ form.question }}
+        <button type="button" id="btn-mic" class="btn btn-outline-secondary position-absolute end-0 top-50 translate-middle-y me-3" style="height: 38px; width: 38px;" title="Hablar">
+            <i class="bi bi-mic"></i>
+        </button>
     </div>
     <div class="d-flex gap-2">
         <button type="submit" name="submit_question" class="btn btn-primary">Enviar Pregunta</button>
@@ -85,5 +88,36 @@ document.addEventListener('DOMContentLoaded', function () {
         loadTopics(selectedSubject);
     }
 });
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    const micBtn = document.getElementById('btn-mic');
+    const questionInput = document.querySelector('#id_question');
+
+    micBtn.addEventListener('click', () => {
+        recognition.start();
+        micBtn.classList.add('btn-outline-danger');
+        micBtn.innerHTML = '<i class="bi bi-mic-fill text-danger"></i>';
+    });
+
+    recognition.addEventListener('result', e => {
+        const transcript = e.results[0][0].transcript;
+        questionInput.value += transcript + ' ';
+        recognition.stop();
+        micBtn.classList.remove('btn-outline-danger');
+        micBtn.innerHTML = '<i class="bi bi-mic"></i>';
+    });
+
+    recognition.addEventListener('end', () => {
+        micBtn.classList.remove('btn-outline-danger');
+        micBtn.innerHTML = '<i class="bi bi-mic"></i>';
+    });
+} else {
+    console.warn("Tu navegador no soporta reconocimiento de voz.");
+}
 </script>
 {% endblock %}

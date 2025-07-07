@@ -153,8 +153,12 @@ def index(request):
                     })
                 try:
                     # Añadimos la descripción del tema al prompt
-                    context = selected_topic.description or ""
-                    full_prompt = f"Contexto: {context}\n\nPregunta: {question} (Responde en menos de 300 tokens)"
+                    descripcion = selected_topic.description or ""
+                    tema = selected_topic.name or ""
+
+                    full_prompt = f"""Contexto: Asignatura-{selected_subject.name}, Tema-{tema},
+                                 Descripcion-{descripcion}\n\nPregunta: {question} (Responde en menos de 300 tokens
+                                   y a preguntas que no se ajuste al Contexto responder No aplica al Tema)"""
 
                     response = requests.post(
                         url="https://openrouter.ai/api/v1/chat/completions",
