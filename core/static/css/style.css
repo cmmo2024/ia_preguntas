@@ -65,6 +65,7 @@ input[type="password"] {
 
 /* === Navbar y menú hamburguesa === */
 .navbar-brand {
+    font-size: 24px;
     font-weight: bold;
 }
 
@@ -142,3 +143,9 @@ ul, ol {
         text-overflow: ellipsis;
     }
 }
+
+.custom-divider {
+        height: 1px; /* Altura de la línea */
+        background-color: #ccc; /* Color de la línea */
+        margin: 8px 0; /* Margen superior e inferior */
+    }

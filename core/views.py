@@ -59,35 +59,13 @@ def login_view(request):
 def index(request):
     load_dotenv()  # Carga las variables del .env
     # 👇 Cargamos esto desde el principio
+    #últimas 10 conversaciones del usuario actual, ordenadas por fecha de creación descendente
     conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
-
-    # Cargar valores anteriores desde sesión
-    last_subject = request.session.get('last_subject')
-    last_topic = request.session.get('last_topic')
-    last_model = request.session.get('last_model')
-
-    initial_data = {}
-    form_data = request.POST.copy() if request.method == 'POST' else {}
-
-    # Valores iniciales solo si están disponibles
-    if last_subject:
-        initial_data['subject'] = last_subject
-    if last_topic:
-        initial_data['topic'] = last_topic
-    if last_model:
-        initial_data['model'] = last_model
-
-    # Inicializar formulario con valores guardados
-    form = QuestionForm(form_data or None, initial=initial_data)
-    # 👇 Si hay un subject_id, cargamos los topics para el topic field
-    if last_subject:
-        try:
-            subject_id = int(last_subject)
-            form.fields['topic'].queryset = Topic.objects.filter(subject_id=subject_id)
-        except (ValueError, TypeError):
-            form.fields['topic'].queryset = Topic.objects.none()
-
+ 
+   
     if request.method == 'POST':
+        form_data = request.POST.copy()
+        form = QuestionForm(form_data)
         # Actualizar queryset de topic
         if 'subject' in request.POST:
             try:
@@ -102,11 +80,12 @@ def index(request):
             topic_description = selected_topic.description or "No hay descripción."
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
-
+          
             # Guardar en sesión para mantener selección
-            request.session['last_subject'] = str(selected_subject.id)
-            request.session['last_topic'] = str(selected_topic.id)
-            request.session['last_model'] = selected_model
+            request.session['subject_id'] = form.cleaned_data['subject'].id
+            request.session['topic_id'] = form.cleaned_data['topic'].id
+            request.session['model'] = form.cleaned_data['model']
+            
 
             # 👇 Si se hizo clic en "Examen", generar preguntas tipo test
             if 'generate_exam' in request.POST:
@@ -140,7 +119,7 @@ def index(request):
                             "model": selected_model,
                             "messages": [{"role": "user", "content": prompt}],
                             "max_tokens": 1000,
-                            "temperature": 0.3
+                            "temperature": 0.6
                         }
                     )
 
@@ -149,15 +128,15 @@ def index(request):
 
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
                     
-                    # Guardar en sesión para usar en la vista de examen
                    # 👇 Procesar aquí y guardarlo ya listo para exam_result.html
                     questions = parse_exam(ai_response)
                     #print("Preguntas procesadas:", questions)  # ✅ Verifica que aparezca bien
                     request.session['exam_questions'] = questions  # ✅ Guardamos ya procesado
-                    # request.session['exam_raw'] = ai_response  # Opcional para debugging
                     request.session['exam_subject'] = str(selected_subject)
-                    request.session['exam_topic'] = str(selected_topic)
+                    request.session['exam_topic'] = str(selected_topic.name)
+                    
                     return redirect('exam')
+                    
 
                 except Exception as e:
                     messages.error(request, f"⚠️ Error al generar el examen: {e}")
@@ -175,7 +154,7 @@ def index(request):
                 try:
                     # Añadimos la descripción del tema al prompt
                     context = selected_topic.description or ""
-                    full_prompt = f"Contexto: {context}\n\nPregunta: {question}"
+                    full_prompt = f"Contexto: {context}\n\nPregunta: {question} (Responde en menos de 300 tokens)"
 
                     response = requests.post(
                         url="https://openrouter.ai/api/v1/chat/completions",
@@ -186,7 +165,7 @@ def index(request):
                         json={
                             "model": selected_model,
                             "messages": [{"role": "user", "content": full_prompt}],
-                            "max_tokens": 200,
+                            #"max_tokens": 200,
                             "temperature": 0.7,
                             "top_p": 0.9,
                         }
@@ -210,20 +189,24 @@ def index(request):
 
         else:
              # 👇 Guardar los datos actuales para mostrar errores
-            request.session['last_subject'] = request.POST.get('subject')
-            request.session['last_topic'] = request.POST.get('topic')
-            request.session['last_model'] = request.POST.get('model')
+            request.session['subject_id'] = form.cleaned_data['subject'].id
+            request.session['topic_id'] = form.cleaned_data['topic'].id
+            request.session['model'] = form.cleaned_data['model']
 
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"⚠️ Error en '{form.fields[field].label}': {error}")
 
-    else:
-        # Carga inicial
+    else: # Si no es POST        
         pass
-        form = QuestionForm(initial={'model': 'qwen/qwen-2.5-72b-instruct:free'})
 
-    #conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
+    initial_data = {
+            'subject': request.session.get('subject_id', ''),
+            'topic': request.session.get('topic_id', ''),
+            'model': request.session.get('model', ''),
+        }
+    form = QuestionForm(initial=initial_data)   
+    
     return render(request, 'core/index.html', {
         'form': form,
         'conversations': conversations

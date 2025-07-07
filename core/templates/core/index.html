@@ -36,7 +36,7 @@
     {% for conv in conversations %}
     <div class="list-group-item list-group-item-action position-relative">
         <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
-        <strong>{{ conv.topic.subject }} → {{ conv.topic }}</strong><br>
+        <strong>{{ conv.topic.subject }} → {{ conv.topic.name }}</strong><br>
         <em>{{ conv.question }}</em><br>
         <p>{{ conv.response }}</p>
 
