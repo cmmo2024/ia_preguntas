@@ -39,19 +39,19 @@
 
     <div class="d-flex gap-2">
         <button type="submit" name="submit_question" class="btn btn-primary">Enviar Pregunta</button>
-        <button type="submit" name="generate_exam" value="1" class="btn btn-outline-success ms-2">Realizar Examen</button>
+        <button type="submit" name="generate_exam" value="1" class="btn btn-outline-success ms-2">Aplicar Examen</button>
     </div>
 </form>
 
 <!-- Bloque de filtros con estilo mejorado -->
 <div class="card mb-4 rounded-3 border p-3 bg-light small">
-    <h6 class="card-title text-muted mb-3">Filtrar historial</h6>
+    <h6 class="card-title text-muted mb-3">Filtrar historial de preguntas</h6>
     <form method="get" class="mb-0">
         <div class="row g-3 align-items-end">
             <!-- Filtro por asignatura -->
             <div class="col-md-5 col-12">
                 <label for="filter-subject" class="form-label small">Asignatura</label>
-                <select id="filter-subject" name="subject" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select id="filter-subject" name="subject" class="form-select form-select-sm">
                     <option value="">Todas las asignaturas</option>
                     {% for subject in subjects %}
                     <option value="{{ subject.id }}" {% if subject_filter == subject.id|stringformat:"s" %}selected{% endif %}>
@@ -64,7 +64,7 @@
             <!-- Filtro por tema -->
             <div class="col-md-5 col-12">
                 <label for="filter-topic" class="form-label small">Tema</label>
-                <select id="filter-topic" name="topic" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select id="filter-topic" name="topic" class="form-select form-select-sm">
                     <option value="">Todos los temas</option>
                     {% for topic in topics %}
                     <option value="{{ topic.id }}" {% if topic_filter == topic.id|stringformat:"s" %}selected{% endif %}>
@@ -84,25 +84,8 @@
 
 <!-- Historial de conversaciones -->
 <h4>Mis últimas preguntas</h4>
-<div class="list-group">
-    {% if conversations %}
-        {% for conv in conversations %}
-        <div class="list-group-item list-group-item-action position-relative">
-            <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
-            <strong>{{ conv.topic.subject }} → {{ conv.topic.name }}</strong><br>
-            <em>{{ conv.question }}</em><br>
-            <p>{{ conv.response }}</p>
-
-            <!-- Botón eliminar -->
-            <form action="{% url 'delete_conversation' conv.id %}" method="post" class="position-absolute top-0 end-0 m-2">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
-            </form>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p>No tienes historial aún.</p>
-    {% endif %}
+<div id="conversations-container">
+    {% include "core/_conversations.html" %}
 </div>
 
 <!-- Script para micrófono -->
@@ -202,6 +185,75 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Enviar automáticamente el formulario si quieres
                     // topicFilter.closest("form").submit();
                 });
+        });
+    }
+});
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js "></script>
+<script>
+// Función para aplicar filtros sin recargar toda la página
+function applyFilters() {
+    const subjectId = document.getElementById("filter-subject").value;
+    const topicId = document.getElementById("filter-topic").value;
+
+    // Enviamos los datos por AJAX
+    $.get("?", { subject: subjectId, topic: topicId }, function(data) {
+        $("#conversations-container").html(data.html);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const subjectSelect = document.getElementById("filter-subject");
+    const topicSelect = document.getElementById("filter-topic");
+
+    // 👇 Al cambiar asignatura, recargamos temas y el historial
+    subjectSelect.addEventListener("change", function () {
+        const subjectId = this.value;
+        const topicFilter = "{{ topic_filter }}";
+
+        // Limpiamos el campo de tema si no hay asignatura
+        if (!subjectId) {
+            topicSelect.innerHTML = '<option value="">Todos los temas</option>';
+            applyFilters();
+            return;
+        }
+
+        // Recargar temas según asignatura
+        fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
+            .then(response => response.json())
+            .then(data => {
+                // Limpiar opciones actuales
+                topicSelect.innerHTML = '<option value="">Todos los temas</option>';
+
+                // Añadir nuevas opciones
+                data.topics.forEach(function (topic) {
+                    const option = document.createElement("option");
+                    option.value = topic.id;
+                    option.textContent = topic.name;
+                    if (topic.id.toString() === topicFilter) {
+                        option.selected = true;
+                    }
+                    topicSelect.appendChild(option);
+                });
+
+                // Actualizar historial
+                applyFilters();
+            });
+    });
+
+    // 👇 Al cambiar tema, recargar historial
+    topicSelect.addEventListener("change", function () {
+        applyFilters();
+    });
+
+    // 👇 Botón "Limpiar"
+    const clearBtn = document.querySelector("#clear-filters");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            document.getElementById("filter-subject").value = "";
+            document.getElementById("filter-topic").value = "";
+            applyFilters();
         });
     }
 });

@@ -1,0 +1,22 @@
+<!-- templates/core/_conversations.html -->
+
+<div class="list-group">
+    {% if conversations %}
+        {% for conv in conversations %}
+        <div class="list-group-item list-group-item-action position-relative">
+            <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
+            <strong>{{ conv.topic.subject }} → {{ conv.topic.name }}</strong><br>
+            <em>{{ conv.question }}</em><br>
+            <p>{{ conv.response }}</p>
+
+            <!-- Botón eliminar -->
+            <form action="{% url 'delete_conversation' conv.id %}" method="post" class="position-absolute top-0 end-0 m-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
+            </form>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No tienes historial aún.</p>
+    {% endif %}
+</div>

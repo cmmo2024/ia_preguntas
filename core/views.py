@@ -4,7 +4,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string 
 from .forms import QuestionForm, RegisterForm, LoginForm
 from .models import Conversation, Topic
 from dotenv import load_dotenv
@@ -228,12 +229,21 @@ def index(request):
     subjects = Subject.objects.all()
     topics = Topic.objects.all()
 
-    # 👇 Si hay un subject_filter, mostramos solo sus temas
-    if subject_filter:
-        try:
-            topics = topics.filter(subject_id=int(subject_filter))
-        except ValueError:
-            topics = Topic.objects.none()  # O vacío si el subject_id no es válido
+    # Si hay un subject_filter, cargamos solo sus temas
+    if subject_filter and subject_filter.isdigit():
+        topics = Topic.objects.filter(subject_id=int(subject_filter))
+    else:
+        topics = Topic.objects.all()
+
+    subjects = Subject.objects.all()
+
+    if request.method == 'GET':
+    # Si es una solicitud AJAX, devolvemos solo el historial filtrado
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            html = render_to_string('core/_conversations.html', {
+                'conversations': conversations,
+            }, request=request)
+            return JsonResponse({'html': html})
 
 
     return render(request, 'core/index.html', {
@@ -244,7 +254,8 @@ def index(request):
         'subject_filter': subject_filter,
         'topic_filter': topic_filter
     })
-
+    
+    
 def load_topics(request):
     subject_id = request.GET.get('subject')
     topics = Topic.objects.filter(subject_id=subject_id).values('id', 'name')
