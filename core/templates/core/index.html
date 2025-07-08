@@ -1,26 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- Formulario principal -->
 <h3>Pregunta a la IA</h3>
 {% if messages %}
+<div class="alert alert-danger">
     {% for message in messages %}
-    <div class="alert alert-danger">{{ message }}</div>
+    <p>{{ message }}</p>
     {% endfor %}
+</div>
 {% endif %}
+
 <form method="post" class="mb-4" id="question-form">
     {% csrf_token %}
+    
     <div class="mb-3">
         {{ form.subject.label_tag }}
         {{ form.subject }}
     </div>
+
     <div class="mb-3">
         {{ form.topic.label_tag }}
         {{ form.topic }}
     </div>
-    <div class="mb-3">
+
+    <div class="mb-3 position-relative">
         {{ form.model.label_tag }}
         {{ form.model }}
     </div>
+
     <div class="mb-3 position-relative">
         {{ form.question.label_tag }}
         {{ form.question }}
@@ -28,34 +36,111 @@
             <i class="bi bi-mic"></i>
         </button>
     </div>
+
     <div class="d-flex gap-2">
         <button type="submit" name="submit_question" class="btn btn-primary">Enviar Pregunta</button>
         <button type="submit" name="generate_exam" value="1" class="btn btn-outline-success ms-2">Realizar Examen</button>
     </div>
 </form>
 
-<h4>Mis últimas preguntas</h4>
-<div class="list-group">
-    {% for conv in conversations %}
-    <div class="list-group-item list-group-item-action position-relative">
-        <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
-        <strong>{{ conv.topic.subject }} → {{ conv.topic.name }}</strong><br>
-        <em>{{ conv.question }}</em><br>
-        <p>{{ conv.response }}</p>
+<!-- Bloque de filtros con estilo mejorado -->
+<div class="card mb-4 rounded-3 border p-3 bg-light small">
+    <h6 class="card-title text-muted mb-3">Filtrar historial</h6>
+    <form method="get" class="mb-0">
+        <div class="row g-3 align-items-end">
+            <!-- Filtro por asignatura -->
+            <div class="col-md-5 col-12">
+                <label for="filter-subject" class="form-label small">Asignatura</label>
+                <select id="filter-subject" name="subject" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas las asignaturas</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if subject_filter == subject.id|stringformat:"s" %}selected{% endif %}>
+                        {{ subject.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- Botón eliminar -->
-        <form action="{% url 'delete_conversation' conv.id %}" method="post" class="position-absolute top-0 end-0 m-2">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
-        </form>
-    </div>
-    {% empty %}
-    <p>No tienes historial aún.</p>
-    {% endfor %}
+            <!-- Filtro por tema -->
+            <div class="col-md-5 col-12">
+                <label for="filter-topic" class="form-label small">Tema</label>
+                <select id="filter-topic" name="topic" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos los temas</option>
+                    {% for topic in topics %}
+                    <option value="{{ topic.id }}" {% if topic_filter == topic.id|stringformat:"s" %}selected{% endif %}>
+                        {{ topic.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Botón limpiar -->
+            <div class="col-md-2 col-12 text-md-end mt-md-0 mt-2">
+                <a href="{% url 'index' %}" class="btn btn-outline-secondary btn-sm w-100">Limpiar</a>
+            </div>
+        </div>
+    </form>
 </div>
 
+<!-- Historial de conversaciones -->
+<h4>Mis últimas preguntas</h4>
+<div class="list-group">
+    {% if conversations %}
+        {% for conv in conversations %}
+        <div class="list-group-item list-group-item-action position-relative">
+            <small class="text-muted">{{ conv.created_at|date:"d M Y H:i" }}</small><br>
+            <strong>{{ conv.topic.subject }} → {{ conv.topic.name }}</strong><br>
+            <em>{{ conv.question }}</em><br>
+            <p>{{ conv.response }}</p>
+
+            <!-- Botón eliminar -->
+            <form action="{% url 'delete_conversation' conv.id %}" method="post" class="position-absolute top-0 end-0 m-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
+            </form>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No tienes historial aún.</p>
+    {% endif %}
+</div>
+
+<!-- Script para micrófono -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        const micBtn = document.getElementById('btn-mic');
+        const questionInput = document.querySelector('#id_question');
+
+        micBtn.addEventListener('click', () => {
+            recognition.start();
+            micBtn.classList.add('btn-outline-danger');
+            micBtn.innerHTML = '<i class="bi bi-mic-fill text-danger"></i>';
+        });
+
+        recognition.addEventListener('result', e => {
+            const transcript = e.results[0][0].transcript;
+            questionInput.value += transcript + ' ';
+            recognition.stop();
+            micBtn.classList.remove('btn-outline-danger');
+            micBtn.innerHTML = '<i class="bi bi-mic"></i>';
+        });
+
+        recognition.addEventListener('end', () => {
+            micBtn.classList.remove('btn-outline-danger');
+            micBtn.innerHTML = '<i class="bi bi-mic"></i>';
+        });
+    } else {
+        console.warn("Tu navegador no soporta reconocimiento de voz.");
+    }
+
+    // Cargar temas dinámicamente según asignatura seleccionada
     const subjectSelect = document.querySelector('#id_subject');
     const topicSelect = document.querySelector('#id_topic');
 
@@ -88,36 +173,38 @@ document.addEventListener('DOMContentLoaded', function () {
         loadTopics(selectedSubject);
     }
 });
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-ES';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+document.addEventListener('DOMContentLoaded', function () {
+    const subjectFilter = document.getElementById('filter-subject');
+    const topicFilter = document.getElementById('filter-topic');
 
-    const micBtn = document.getElementById('btn-mic');
-    const questionInput = document.querySelector('#id_question');
+    if (subjectFilter && topicFilter) {
+        subjectFilter.addEventListener('change', function () {
+            const subjectId = this.value;
+            if (!subjectId) return;
 
-    micBtn.addEventListener('click', () => {
-        recognition.start();
-        micBtn.classList.add('btn-outline-danger');
-        micBtn.innerHTML = '<i class="bi bi-mic-fill text-danger"></i>';
-    });
+            fetch(`{% url 'ajax_load_topics' %}?subject=${subjectId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Limpiar opciones actuales
+                    topicFilter.innerHTML = '<option value="">Todos los temas</option>';
 
-    recognition.addEventListener('result', e => {
-        const transcript = e.results[0][0].transcript;
-        questionInput.value += transcript + ' ';
-        recognition.stop();
-        micBtn.classList.remove('btn-outline-danger');
-        micBtn.innerHTML = '<i class="bi bi-mic"></i>';
-    });
+                    // Añadir temas filtrados
+                    data.topics.forEach(function (topic) {
+                        const option = document.createElement('option');
+                        option.value = topic.id;
+                        option.textContent = topic.name;
+                        if ("{{ topic_filter }}" === topic.id.toString()) {
+                            option.selected = true;
+                        }
+                        topicFilter.appendChild(option);
+                    });
 
-    recognition.addEventListener('end', () => {
-        micBtn.classList.remove('btn-outline-danger');
-        micBtn.innerHTML = '<i class="bi bi-mic"></i>';
-    });
-} else {
-    console.warn("Tu navegador no soporta reconocimiento de voz.");
-}
+                    // Enviar automáticamente el formulario si quieres
+                    // topicFilter.closest("form").submit();
+                });
+        });
+    }
+});
 </script>
+
 {% endblock %}

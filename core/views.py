@@ -57,15 +57,29 @@ def login_view(request):
 
 @login_required
 def index(request):
-    load_dotenv()  # Carga las variables del .env
-    # 👇 Cargamos esto desde el principio
-    #últimas 10 conversaciones del usuario actual, ordenadas por fecha de creación descendente
-    conversations = Conversation.objects.filter(user=request.user).order_by('-created_at')[:10]
- 
-   
+    load_dotenv()
+
+    # Cargar valores de filtro desde URL (?subject=X&topic=Y)
+    subject_filter = request.GET.get('subject')
+    topic_filter = request.GET.get('topic')
+
+    # Cargamos todas las conversaciones del usuario
+    conversations = Conversation.objects.filter(user=request.user)
+
+    # Aplicamos filtros si existen
+    if subject_filter:
+        conversations = conversations.filter(topic__subject_id=subject_filter)
+    
+    if topic_filter:
+        conversations = conversations.filter(topic_id=topic_filter)
+
+    # Limitamos a últimas 10 conversaciones
+    conversations = conversations.order_by('-created_at')[:10]
+
     if request.method == 'POST':
         form_data = request.POST.copy()
         form = QuestionForm(form_data)
+
         # Actualizar queryset de topic
         if 'subject' in request.POST:
             try:
@@ -77,34 +91,32 @@ def index(request):
         if form.is_valid():
             selected_subject = form.cleaned_data['subject']
             selected_topic = form.cleaned_data['topic']
-            topic_description = selected_topic.description or "No hay descripción."
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
-          
+
             # Guardar en sesión para mantener selección
-            request.session['subject_id'] = form.cleaned_data['subject'].id
-            request.session['topic_id'] = form.cleaned_data['topic'].id
-            request.session['model'] = form.cleaned_data['model']
-            
+            request.session['subject_id'] = selected_subject.id
+            request.session['topic_id'] = selected_topic.id
+            request.session['model'] = selected_model
 
             # 👇 Si se hizo clic en "Examen", generar preguntas tipo test
             if 'generate_exam' in request.POST:
                 try:
-                    # Preparar el prompt para generar un examen
                     prompt = f"""
-                    Eres un profesor virtual. Genera 7 preguntas de opción múltiple sobre el tema '{selected_topic.name}' 
+                    Eres un profesor virtual. Genera 7 preguntas de opción múltiple sobre '{selected_topic.name}' 
                     de la asignatura '{selected_subject}'.
-                    Contexto: {topic_description}
+                    Contexto: {selected_topic.description or ''}
+                    
                     Cada pregunta debe tener 4 opciones (a, b, c, d) y señalar cuál es la correcta.
                     
-                    Ejemplo de formato:
+                    Ejemplo:
                     
-                    PREGUNTA 1: ¿Cuál es la capital de Francia?
-                    a) Madrid
-                    b) París
-                    c) Roma
-                    d) Berlín
-                    Correcta: b
+                    PREGUNTA 1: ¿Cuánto es 2 + 2?
+                    a) 3
+                    b) 5
+                    c) 4
+                    d) 0
+                    Correcta: c
                     
                     ... (repetir para 7 preguntas)
                     """
@@ -128,36 +140,35 @@ def index(request):
 
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
                     
-                   # 👇 Procesar aquí y guardarlo ya listo para exam_result.html
                     questions = parse_exam(ai_response)
-                    #print("Preguntas procesadas:", questions)  # ✅ Verifica que aparezca bien
-                    request.session['exam_questions'] = questions  # ✅ Guardamos ya procesado
+                    request.session['exam_questions'] = questions
                     request.session['exam_subject'] = str(selected_subject)
                     request.session['exam_topic'] = str(selected_topic.name)
-                    
+
                     return redirect('exam')
-                    
 
                 except Exception as e:
                     messages.error(request, f"⚠️ Error al generar el examen: {e}")
                     return redirect('index')
 
-            # 👇 Si no es examen, procesar normalmente
             elif 'submit_question' in request.POST:
-                # 👇 Validación manual del campo 'question'
                 if not question.strip():
                     messages.error(request, "⚠️ El campo 'Pregunta' es obligatorio.")
                     return render(request, 'core/index.html', {
                         'form': form,
-                        'conversations': conversations
+                        'conversations': conversations,
+                        'subjects': Subject.objects.all(),
+                        'topics': Topic.objects.all(),
+                        'subject_filter': subject_filter,
+                        'topic_filter': topic_filter
                     })
+
                 try:
-                    # Añadimos la descripción del tema al prompt
+                    # Añadimos contexto de la asignatura y tema
                     descripcion = selected_topic.description or ""
                     tema = selected_topic.name or ""
-
                     full_prompt = f"""Contexto: Asignatura-{selected_subject.name}, Tema-{tema},
-                                 Descripcion-{descripcion}\n\nPregunta: {question} (Responde en menos de 300 tokens
+                                 Descripcion-{descripcion} Pregunta: {question} (Responde en menos de 300 tokens
                                    y a preguntas que no se ajuste al Contexto responder No aplica al Tema)"""
 
                     response = requests.post(
@@ -169,7 +180,6 @@ def index(request):
                         json={
                             "model": selected_model,
                             "messages": [{"role": "user", "content": full_prompt}],
-                            #"max_tokens": 200,
                             "temperature": 0.7,
                             "top_p": 0.9,
                         }
@@ -192,28 +202,47 @@ def index(request):
                     return redirect('index')
 
         else:
-             # 👇 Guardar los datos actuales para mostrar errores
-            request.session['subject_id'] = form.cleaned_data['subject'].id
-            request.session['topic_id'] = form.cleaned_data['topic'].id
-            request.session['model'] = form.cleaned_data['model']
-
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"⚠️ Error en '{form.fields[field].label}': {error}")
 
-    else: # Si no es POST        
-        pass
+            return render(request, 'core/index.html', {
+                'form': form,
+                'conversations': conversations,
+                'subjects': Subject.objects.all(),
+                'topics': Topic.objects.all(),
+                'subject_filter': subject_filter,
+                'topic_filter': topic_filter
+            })
 
-    initial_data = {
-            'subject': request.session.get('subject_id', ''),
-            'topic': request.session.get('topic_id', ''),
-            'model': request.session.get('model', ''),
+    else:
+        # Carga inicial con datos guardados o vacíos
+        initial_data = {
+            'subject': request.session.get('subject_id'),
+            'topic': request.session.get('topic_id'),
+            'model': request.session.get('model')
         }
-    form = QuestionForm(initial=initial_data)   
-    
+        form = QuestionForm(initial=initial_data)
+
+    # Pasamos todas las asignaturas y temas para los filtros
+    subjects = Subject.objects.all()
+    topics = Topic.objects.all()
+
+    # 👇 Si hay un subject_filter, mostramos solo sus temas
+    if subject_filter:
+        try:
+            topics = topics.filter(subject_id=int(subject_filter))
+        except ValueError:
+            topics = Topic.objects.none()  # O vacío si el subject_id no es válido
+
+
     return render(request, 'core/index.html', {
         'form': form,
-        'conversations': conversations
+        'conversations': conversations,
+        'subjects': subjects,
+        'topics': topics,
+        'subject_filter': subject_filter,
+        'topic_filter': topic_filter
     })
 
 def load_topics(request):
