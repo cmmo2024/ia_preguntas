@@ -120,6 +120,7 @@ def index(request):
                     Correcta: c
                     
                     ... (repetir para 7 preguntas)
+                    Importante: No hagas comentarios, solo responde con el formato del ejemplo dado
                     """
 
                     response = requests.post(
