@@ -11,6 +11,8 @@ from .models import Conversation, Topic
 from dotenv import load_dotenv
 from django.contrib.auth.models import User  # 👈 Añade esta línea
 
+load_dotenv() #Carga variables de entorno
+
 def logout_view(request):
     # Opcional: Limpiar mensajes antes de cerrar sesión
     storage = messages.get_messages(request)
@@ -56,8 +58,9 @@ def login_view(request):
 
     return render(request, 'core/login.html', {'form': form})
 
+# Index----Vista de Tutor-IA-------------------------------------------------
+@login_required
 def index(request):
-    load_dotenv()
     #-----Cheque del Plan--------
     profile = request.user.userprofile
     profile.reset_period_if_needed()
@@ -289,6 +292,7 @@ import chardet
 def is_superuser(user):
     return user.is_superuser
 
+# Vista de Cargar Temas de archivo----------------------------------------------------------------------
 @user_passes_test(is_superuser, login_url='index')
 def upload_topics_view(request):
     if request.method == 'POST':
@@ -340,7 +344,7 @@ def upload_topics_view(request):
 
     return render(request, 'core/upload_topics.html', {'form': form})
 
-
+# Borrar Conversación----------------------------------------------------------------------
 from .models import Conversation
 from django.shortcuts import get_object_or_404
 
@@ -357,6 +361,7 @@ def delete_conversation(request, conv_id):
         messages.success(request, "✅ Conversación eliminada correctamente.")
     return redirect('index')
 
+# Vista de Examen----------------------------------------------------------------------
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -388,7 +393,7 @@ def exam_view(request):
         'subject_name': subject_name
     })
 
-
+# Parser de Examen----------------------------------------------------------------------
 import re
 
 def parse_exam(text):
@@ -428,7 +433,7 @@ def parse_exam(text):
 
     return questions
 
-
+# Aplicar Examen----------------------------------------------------------------------
 @login_required
 def submit_exam(request):
     if request.method == 'POST':
@@ -490,7 +495,7 @@ def submit_exam(request):
     else:
         return redirect('index')
     
-
+# Perfil de usuario----------------------------------------------------------------------
 from .models import UserProfile, Conversation
 from django.shortcuts import render
 
@@ -513,3 +518,67 @@ def profile_view(request):
         'exam_history': exam_results,
     }
     return render(request, 'core/profile.html', context)
+
+# Pago con Stripe...--------------------------------------------------------------------
+import stripe
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, reverse
+from django.urls import reverse
+from django.contrib import messages
+from django.http import JsonResponse
+import json
+from datetime import timezone
+
+@login_required
+def create_payment(request):
+    profile = request.user.userprofile
+    if profile.plan == 'premium':
+        messages.warning(request, "⚠️ Ya tienes el plan Premium.")
+        return redirect('profile')
+
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "unit_amount": 999,  # $9.99 USD
+                        "product_data": {
+                            "name": "Plan Premium - Tutor con IA",
+                            "description": "Acceso completo por 30 días"
+                        },
+                    },
+                    "quantity": 1,
+                }
+            ],
+            mode="subscription",  # o "payment" si es pago único
+            success_url=request.build_absolute_uri(reverse('payment_success')),
+            cancel_url=request.build_absolute_uri(reverse('payment_cancelled')),
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        messages.error(request, f"❌ Error al procesar el pago: {str(e)}")
+        return redirect('profile')
+    
+    # Pago exitoso--------------------------------------------------------------------
+@login_required
+def payment_success(request):
+    profile = request.user.userprofile
+    profile.plan = 'premium'
+    profile.period_start = timezone.now().date()
+    profile.daily_ia_requests = 0
+    profile.daily_exams = 0
+    profile.save()
+
+    messages.success(request, "🎉 ¡Gracias por tu pago! Ahora tienes acceso completo.")
+    return redirect('profile')
+
+# Pago cancelado------------------------------------------------------------------------
+def payment_cancelled(request):
+    messages.info(request, "❌ El pago fue cancelado.")
+    return redirect('profile')

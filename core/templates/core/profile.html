@@ -25,7 +25,7 @@
                     <span>{{ profile.daily_ia_requests }} / {% if profile.plan == 'free' %}5{% else %}100{% endif %}</span>
                 </div>
                 <!-- Barra de progreso -->
-                <div class="progress mt-1" style="height: 6px;">
+                <div class="progress mt-1" style="height: 12px;">
                     <div class="progress-bar" role="progressbar"
                          style="width: {{ profile.daily_ia_requests|div:profile.max_daily_requests|mul:100 }}%">
                         {{ profile.daily_ia_requests|div:profile.max_daily_requests|mul:100|floatformat:"0" }}%
@@ -38,7 +38,7 @@
                     <span>{{ profile.daily_exams }} / {% if profile.plan == 'free' %}5{% else %}40{% endif %}</span>
                 </div>
                 <!-- Barra de progreso -->
-                <div class="progress mt-1" style="height: 6px;">
+                <div class="progress mt-1" style="height: 12px;">
                     <div class="progress-bar bg-success" role="progressbar"
                          style="width: {{ profile.daily_exams|div:profile.max_daily_exams|mul:100 }}%">
                         {{ profile.daily_exams|div:profile.max_daily_exams|mul:100|floatformat:"0" }}%
@@ -53,7 +53,11 @@
 
         <!-- Botón Upgrade -->
         {% if profile.plan != 'premium' %}
-        <a href="https://tu-plataforma.com/pagar/premium " class="btn btn-lg btn-success w-100 mt-3">Upgrade a Premium</a>
+        <!-- Botón de pago -->
+        <form action="{% url 'create_payment' %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success mt-3">Upgrade a Premium</button>
+        </form>
         {% endif %}
     </div>
 </div>
@@ -84,6 +88,4 @@
 {% else %}
 <p>No has realizado ningún examen aún.</p>
 {% endif %}
-
-<a href="{% url 'index' %}" class="btn btn-primary">Volver</a>
 {% endblock %}
