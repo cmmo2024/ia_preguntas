@@ -1,0 +1,89 @@
+<!-- templates/core/profile.html -->
+{% extends "base.html" %}
+{% load math_filters date_filters %} <!-- Importante -->
+{% block content %}
+<h2>Perfil de {{ user.username }}</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <ul class="list-group mb-4">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Nombre:</strong></span>
+                <span>{{ user.username }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Email:</strong></span>
+                <span>{{ user.email }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Plan:</strong></span>
+                <span class="badge bg-primary">{{ profile.get_plan_display }}</span>
+            </li>
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><strong>Peticiones usadas:</strong></span>
+                    <span>{{ profile.daily_ia_requests }} / {% if profile.plan == 'free' %}5{% else %}100{% endif %}</span>
+                </div>
+                <!-- Barra de progreso -->
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: {{ profile.daily_ia_requests|div:profile.max_daily_requests|mul:100 }}%">
+                        {{ profile.daily_ia_requests|div:profile.max_daily_requests|mul:100|floatformat:"0" }}%
+                    </div>
+                </div>
+            </li>
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><strong>Exámenes realizados:</strong></span>
+                    <span>{{ profile.daily_exams }} / {% if profile.plan == 'free' %}5{% else %}40{% endif %}</span>
+                </div>
+                <!-- Barra de progreso -->
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         style="width: {{ profile.daily_exams|div:profile.max_daily_exams|mul:100 }}%">
+                        {{ profile.daily_exams|div:profile.max_daily_exams|mul:100|floatformat:"0" }}%
+                    </div>
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Válido hasta:</strong></span>
+                <span>{{ profile.period_start|add_days:profile.period_days|date:"d/m/Y" }}</span>
+            </li>
+        </ul>
+
+        <!-- Botón Upgrade -->
+        {% if profile.plan != 'premium' %}
+        <a href="https://tu-plataforma.com/pagar/premium " class="btn btn-lg btn-success w-100 mt-3">Upgrade a Premium</a>
+        {% endif %}
+    </div>
+</div>
+
+<h3>Historial de exámenes</h3>
+{% if exam_history %}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Aciertos</th>
+            <th>Total</th>
+            <th>%</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for exam in exam_history %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ exam.correct_count }}</td>
+                <td>{{ exam.total }}</td>
+                <td>{{ exam.correct_count|div:exam.total|mul:100|floatformat:"2" }}%</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<p><strong>Promedio general:</strong> {{ average_score }}%</p>
+{% else %}
+<p>No has realizado ningún examen aún.</p>
+{% endif %}
+
+<a href="{% url 'index' %}" class="btn btn-primary">Volver</a>
+{% endblock %}

@@ -56,9 +56,16 @@ def login_view(request):
 
     return render(request, 'core/login.html', {'form': form})
 
-@login_required
 def index(request):
     load_dotenv()
+    #-----Cheque del Plan--------
+    profile = request.user.userprofile
+    profile.reset_period_if_needed()
+
+    if not profile.can_make_request():
+        messages.warning(request, "⚠️ Has alcanzado el límite de peticiones.")
+        return redirect('profile')
+    #-----Cheque del Plan--------
 
     # Cargar valores de filtro desde URL (?subject=X&topic=Y)
     subject_filter = request.GET.get('subject')
@@ -139,7 +146,8 @@ def index(request):
 
                     if response.status_code != 200:
                         raise Exception(f"Error de API: {response.status_code} - {response.text}")
-
+                    
+                    profile.increment_request() # Incrementar numero de request para plan
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
                     
                     questions = parse_exam(ai_response)
@@ -198,6 +206,7 @@ def index(request):
                         question=question,
                         response=ai_response
                     )
+                    profile.increment_request() # Incrementar numero de request para plan
 
                 except Exception as e:
                     messages.error(request, f"⚠️ Error al comunicarse con la IA: {e}")
@@ -354,6 +363,12 @@ from django.http import HttpResponse
 
 @login_required
 def exam_view(request):
+    #------Chequeo para Plan----------
+    profile = request.user.userprofile
+    if not profile.can_take_exam():
+        messages.warning(request, "⚠️ Has alcanzado el límite de exámenes.")
+        return redirect('profile')
+    #------Chequeo para Plan----------
     questions = request.session.get('exam_questions', [])
     topic_name = request.session.get('exam_topic', 'Tema')
     subject_name = request.session.get('exam_subject', 'Asignatura')
@@ -474,3 +489,27 @@ def submit_exam(request):
 
     else:
         return redirect('index')
+    
+
+from .models import UserProfile, Conversation
+from django.shortcuts import render
+
+@login_required
+def profile_view(request):
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    # Estadísticas de exámenes
+    exam_results = request.session.get('exam_results', [])
+    total_exams = len(exam_results)
+    correct_answers = sum(result['correct_count'] for result in exam_results)
+    total_questions = sum(result['total'] for result in exam_results)
+    average_score = round(correct_answers / total_questions * 100, 2) if total_questions else 0
+
+    context = {
+        'user': request.user,
+        'profile': user_profile,
+        'total_exams': total_exams,
+        'average_score': average_score,
+        'exam_history': exam_results,
+    }
+    return render(request, 'core/profile.html', context)

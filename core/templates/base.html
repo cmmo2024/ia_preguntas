@@ -40,7 +40,7 @@
 
                     <!-- Configuración -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/configuracion/">Configuración</a>
+                        <a class="nav-link" href="{% url 'profile' %}">Perfil</a>
                     </li>
 
                     {% if user.is_superuser %}
@@ -56,7 +56,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
                     </li>
-
+                    
                     <!-- Separador -->
                     <li class="nav-item dropdown-divider"></li>
                     <li class="custom-divider"></li> <!-- Separador personalizado -->

@@ -16,4 +16,5 @@ urlpatterns = [
     # 👇 Nuevas rutas para examen
     path('exam/', views.exam_view, name='exam'),
     path('exam/submit/', views.submit_exam, name='submit_exam'),
+    path('perfil/', views.profile_view, name='profile'),
 ]
