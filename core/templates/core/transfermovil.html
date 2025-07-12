@@ -1,0 +1,78 @@
+<!-- templates/core/transfermovil.html -->
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Realizar pago por Transfermovil</h3>
+
+    <p class="mt-3">Haz tu pago a la siguiente cuenta:</p>
+    <div class="card mb-3">
+        <div class="card-body text-center">
+            <h5 class="card-title">No. de Cuenta</h5>
+            <p class="fs-4 fw-bold">9238959870690379</p>
+            <img src="{% static 'images/qr_transfermovil.png' %}" alt="QR Transfermovil" class="img-fluid mb-3" style="max-width: 200px;">
+            <p><strong>Monto a pagar:</strong> 500 CUP</p>
+        </div>
+    </div>
+
+    <form method="post" id="transfer-form">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="sms-text" class="form-label">Pega aquí el texto del SMS de confirmación:</label>
+            <textarea id="sms-text" name="sms_text" rows="5" class="form-control" placeholder="Ejemplo: Banco Metropolitano: La Transferencia fue completada. Beneficiario: 9238XXXXXXXX0379..."></textarea>
+        </div>
+
+        <!-- Botón deshabilitado hasta que se pase el texto -->
+        <button type="submit" class="btn btn-success mt-3" id="apply-button" disabled>Aplicar Plan</button>
+    </form>
+
+    <p class="text-muted mt-3 small">
+        Una vez realizada la transferencia, copia el mensaje SMS completo y pégalo arriba.
+        Solo se aceptan pagos de 500 CUP y deben coincidir los 4 primeros y últimos dígitos de la cuenta del beneficiario.
+    </p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const smsInput = document.querySelector("#sms-text");
+    const applyButton = document.querySelector("#apply-button");
+
+    smsInput.addEventListener("input", function () {
+        const text = smsInput.value;
+
+        // Expresión regular para extraer datos del SMS
+        const beneficiaryRegex = /Beneficiario:\s*(\d{4}[\dX]{8,}\d{4})/;
+        const amountRegex = /Monto:\s*(\d+\.\d+)\s*CUP/;
+
+        const beneficiaryMatch = text.match(beneficiaryRegex);
+        const amountMatch = text.match(amountRegex);
+
+        if (beneficiaryMatch && amountMatch) {
+            const beneficiary = beneficiaryMatch[1];
+            const amount = amountMatch[1];
+
+            const accountLast4 = "0379";  // últimos 4 dígitos de la cuenta
+            const accountFirst4 = "9238"; // primeros 4 dígitos de la cuenta
+
+            if (
+                beneficiary.startsWith(accountFirst4) &&
+                beneficiary.endsWith(accountLast4) &&
+                parseFloat(amount) === 500.0
+            ) {
+                applyButton.disabled = false;
+                applyButton.classList.remove("btn-outline-secondary");
+                applyButton.classList.add("btn-success");
+            } else {
+                applyButton.disabled = true;
+                applyButton.classList.add("btn-outline-secondary");
+                applyButton.classList.remove("btn-success");
+            }
+        } else {
+            applyButton.disabled = true;
+            applyButton.classList.add("btn-outline-secondary");
+            applyButton.classList.remove("btn-success");
+        }
+    });
+});
+</script>
+{% endblock %}

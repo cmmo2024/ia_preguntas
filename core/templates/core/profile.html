@@ -21,7 +21,7 @@
             </li>
             <li class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">
-                    <span><strong>Peticiones usadas:</strong></span>
+                    <span><strong>Preguntas realizadas:</strong></span>
                     <span>{{ profile.daily_ia_requests }} / {% if profile.plan == 'free' %}5{% else %}100{% endif %}</span>
                 </div>
                 <!-- Barra de progreso -->
@@ -53,11 +53,13 @@
 
         <!-- Botón Upgrade -->
         {% if profile.plan != 'premium' %}
+        <h3>Upgrade a Premium</h3>
         <!-- Botón de pago -->
         <form action="{% url 'create_payment' %}" method="POST">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success mt-3">Upgrade a Premium</button>
+           <button type="submit" class="btn btn-success mt-3" style="background-color: blue; color: white;">Pago por Stripe</button>
         </form>
+        <a href="{% url 'transfermovil' %}" class="btn btn-success mt-3">Pago por Transfermovil</a>
         {% endif %}
     </div>
 </div>

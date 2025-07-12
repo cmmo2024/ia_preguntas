@@ -26,4 +26,5 @@ urlpatterns = [
     # Opcional: sobrescribir algunas vistas
     #path('accounts/login/', allauth_views.login, name="login"),
     #path('accounts/logout/', allauth_views.logout, name="logout"),
+    path('transfermovil/', views.transfermovil_view, name='transfermovil'),
 ]

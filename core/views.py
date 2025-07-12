@@ -150,7 +150,7 @@ def index(request):
                     if response.status_code != 200:
                         raise Exception(f"Error de API: {response.status_code} - {response.text}")
                     
-                    profile.increment_request() # Incrementar numero de request para plan
+                    profile.increment_exam() # Incrementar numero de request para plan
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
                     
                     questions = parse_exam(ai_response)
@@ -582,3 +582,53 @@ def payment_success(request):
 def payment_cancelled(request):
     messages.info(request, "❌ El pago fue cancelado.")
     return redirect('profile')
+# Pago Transfermovil-------------------------------------------------------------------
+# views.py
+import re
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from .models import UserProfile
+from django.utils import timezone
+
+@login_required
+def transfermovil_view(request):
+    account_number = "9238959870690379"
+    amount_required = "500.00 CUP"
+
+    if request.method == 'POST':
+        sms_text = request.POST.get('sms_text', '').strip()
+
+        # Patrón para validar el texto del SMS
+        pattern = r"Beneficiario:\s*(\d{4}[\dX]{8,}\d{4})[\s\S]*?Monto:\s*([\d\.]+)\s*CUP[\s\S]*?Nro.\s*Transaccion:\s*\w+"
+        match = re.search(pattern, sms_text)
+
+        if not match:
+            messages.error(request, "❌ El texto del SMS no tiene el formato correcto.")
+        else:
+            beneficiary = match.group(1)
+            amount = match.group(2)
+
+            # Validar que coincidan 4 primeros y últimos dígitos
+            if beneficiary.startswith(account_number[:4]) and beneficiary.endswith(account_number[-4:]):
+                # Validar monto
+                if float(amount) == 500.0:
+                    profile = request.user.userprofile
+                    profile.plan = 'premium'
+                    profile.period_start = timezone.now().date()
+                    profile.daily_ia_requests = 0
+                    profile.daily_exams = 0
+                    profile.save()
+                    messages.success(request, "🎉 ¡Pago validado! Tu plan ha sido actualizado a Premium.")
+                    return redirect('profile')
+                else:
+                    messages.error(request, f"❌ El monto del SMS debe ser {amount_required}.")
+            else:
+                messages.error(request, "❌ Los dígitos del beneficiario no coinciden con la cuenta destino.")
+
+    context = {
+        'account_number': account_number,
+        'amount_required': amount_required
+    }
+    return render(request, 'core/transfermovil.html', context)
+   
