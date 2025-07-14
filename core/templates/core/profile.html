@@ -1,13 +1,29 @@
 <!-- templates/core/profile.html -->
 {% extends "base.html" %}
 {% load math_filters date_filters %} <!-- Importante -->
+{% load static %}
 {% block content %}
 <h2>Perfil de {{ user.username }}</h2>
 <!-- Aquí mostramos los mensajes -->
 {% if messages %}
 <div class="container mt-3">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} mb-3">{{ message }}</div>
+    <div class="alert alert-{{ message.tags|default:"info" }} d-flex align-items-center justify-content-between fade show animate__animated animate__fadeInDown"
+         role="alert" style="margin-bottom: 1rem;">
+        <div class="d-flex align-items-center">
+            {% if message.tags == "success" %}
+            <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "error" or message.tags == "danger" %}
+            <i class="bi bi-exclamation-octagon-fill text-danger me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "warning" %}
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.2rem;"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+            {% endif %}
+        <span>{{ message }}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     {% endfor %}
 </div>
 {% endif %}
@@ -62,11 +78,18 @@
         <!-- Botón Upgrade -->
         {% if profile.plan != 'premium' %}
         <h3>Upgrade a Premium</h3>
-        <!-- Botón de pago -->
+        <!-- Botón de pago 
         <form action="{% url 'create_payment' %}" method="POST">
             {% csrf_token %}
            <button type="submit" class="btn btn-success mt-3" style="background-color: blue; color: white;">Pago por Stripe</button>
         </form>
+        -->
+       <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="https://tppay.me/md0u2ofs " class="btn btn-success mt-3" style="background-color: blue; color: white; padding: 10px 20px; font-size: 16px; display: flex; align-items: center; margin: 0;">
+                Pago por TropiPay
+            </a>
+            <img src="{% static 'images/VisaCard.png' %}" alt="Visa" style="height: 45px; width: auto; vertical-align: middle; display: block;">
+        </div>
         <a href="{% url 'transfermovil' %}" class="btn btn-success mt-3">Pago por Transfermovil</a>
         {% endif %}
     </div>
@@ -96,6 +119,6 @@
 </table>
 <p><strong>Promedio general:</strong> {{ average_score }}%</p>
 {% else %}
-<p>No has realizado ningún examen aún.</p>
+<p>No has realizado ningún examen aún (Hisorial en construcción).</p>
 {% endif %}
 {% endblock %}

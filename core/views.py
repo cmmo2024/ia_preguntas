@@ -21,6 +21,15 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+from django.contrib.auth import login, authenticate
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import RegisterForm
+from .models import UserProfile
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+
+# views.py
 def register_view(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -28,13 +37,34 @@ def register_view(request):
             username = form.cleaned_data['username']
             password = form.cleaned_data['password1']
 
+            # Verificar si el usuario ya existe
             if User.objects.filter(username=username).exists():
-                messages.error(request, "El nombre de usuario ya está en uso.")
+                messages.error(request, "⚠️ El nombre de usuario ya está en uso.")
                 return render(request, 'core/register.html', {'form': form})
+            
+            # Crear usuario
+            user = User.objects.create_user(
+                username=username,
+                password=password
+            )
+            # 👇 Autenticamos al usuario para que tenga backend asignado
+            user = authenticate(username=username, password=password)
 
-            user = User.objects.create_user(username=username, password=password)
-            login(request, user)
-            return redirect('index')
+            if user is not None:
+                  login(request, user)
+                  return redirect('index')
+            else:
+                 messages.error(request, "⚠️ No se pudo iniciar sesión automáticamente.")
+                 return render(request, 'core/register.html', {'form': form})    
+        else:
+            # Mostrar todos los errores del formulario
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"⚠️ {error}")
+                    else:
+                        messages.error(request, f"⚠️ {form.fields[field].label}: {error}")
+            return render(request, 'core/register.html', {'form': form})
     else:
         form = RegisterForm()
 
@@ -66,7 +96,7 @@ def index(request):
     profile.reset_period_if_needed()
 
     if not profile.can_make_request():
-        messages.warning(request, "⚠️ Has alcanzado el límite de peticiones.")
+        messages.warning(request, "Has alcanzado el límite de peticiones.")
         return redirect('profile')
     #-----Cheque del Plan--------
 
@@ -161,12 +191,12 @@ def index(request):
                     return redirect('exam')
 
                 except Exception as e:
-                    messages.error(request, f"⚠️ Error al generar el examen: {e}")
+                    messages.error(request, f"Error al generar el examen: {e}")
                     return redirect('index')
 
             elif 'submit_question' in request.POST:
                 if not question.strip():
-                    messages.error(request, "⚠️ El campo 'Pregunta' es obligatorio.")
+                    messages.error(request, "El campo 'Pregunta' es obligatorio.")
                     return render(request, 'core/index.html', {
                         'form': form,
                         'conversations': conversations,
@@ -212,13 +242,13 @@ def index(request):
                     profile.increment_request() # Incrementar numero de request para plan
 
                 except Exception as e:
-                    messages.error(request, f"⚠️ Error al comunicarse con la IA: {e}")
+                    messages.error(request, f"Error al comunicarse con la IA: {e}")
                     return redirect('index')
 
         else:
             for field, errors in form.errors.items():
                 for error in errors:
-                    messages.error(request, f"⚠️ Error en '{form.fields[field].label}': {error}")
+                    messages.error(request, f"Error en '{form.fields[field].label}': {error}")
 
             return render(request, 'core/index.html', {
                 'form': form,
@@ -293,7 +323,8 @@ def is_superuser(user):
     return user.is_superuser
 
 # Vista de Cargar Temas de archivo----------------------------------------------------------------------
-@user_passes_test(is_superuser, login_url='index')
+#@user_passes_test(is_superuser, login_url='index')
+@login_required
 def upload_topics_view(request):
     if request.method == 'POST':
         form = UploadTopicsForm(request.POST, request.FILES)
@@ -307,9 +338,9 @@ def upload_topics_view(request):
             subject, created = Subject.objects.get_or_create(name=subject_name)
 
             if not created:
-                messages.warning(request, f"⚠️ La asignatura '{subject_name}' ya existía.")
+                messages.warning(request, f"La asignatura '{subject_name}' ya existía.")
             else:
-                messages.success(request, f"✅ Asignatura '{subject_name}' creada.")
+                messages.success(request, f"Asignatura '{subject_name}' creada.")
 
             try:
                 raw_data = uploaded_file.read()
@@ -330,14 +361,14 @@ def upload_topics_view(request):
                         )
                         count += 1
 
-                messages.success(request, f"📚 Se cargaron {count} temas para '{subject_name}'.")
+                messages.success(request, f"Se cargaron {count} temas para '{subject_name}'.")
             except UnicodeDecodeError as e:
-                messages.error(request, f"❌ Error al decodificar el archivo: {e}")
+                messages.error(request, f"Error al decodificar el archivo: {e}")
             except Exception as e:
-                messages.error(request, f"⚠️ Error al procesar el archivo: {e}")
+                messages.error(request, f"Error al procesar el archivo: {e}")
 
         else:
-            messages.error(request, "⚠️ Formulario inválido.")
+            messages.error(request, "Formulario inválido.")
 
     else:
         form = UploadTopicsForm()
@@ -353,12 +384,12 @@ def delete_conversation(request, conv_id):
     conversation = get_object_or_404(Conversation, id=conv_id, user=request.user)
     if not conversation:
         # Opcional: manejar caso donde no existe la conversación
-        messages.error(request, "⚠️ No se encontró esa conversación.")
+        messages.error(request, "No se encontró esa conversación.")
         return redirect('index')
     conversation.delete()
      # Solo añadimos el mensaje si el usuario sigue autenticado
     if request.user.is_authenticated:
-        messages.success(request, "✅ Conversación eliminada correctamente.")
+        messages.success(request, "Conversación eliminada correctamente.")
     return redirect('index')
 
 # Vista de Examen----------------------------------------------------------------------
@@ -371,7 +402,7 @@ def exam_view(request):
     #------Chequeo para Plan----------
     profile = request.user.userprofile
     if not profile.can_take_exam():
-        messages.warning(request, "⚠️ Has alcanzado el límite de exámenes.")
+        messages.warning(request, "Has alcanzado el límite de exámenes.")
         return redirect('profile')
     #------Chequeo para Plan----------
     questions = request.session.get('exam_questions', [])
@@ -379,7 +410,7 @@ def exam_view(request):
     subject_name = request.session.get('exam_subject', 'Asignatura')
 
     if not questions:
-        messages.error(request, "⚠️ No hay preguntas disponibles.")
+        messages.error(request, "No hay preguntas disponibles.")
         return redirect('index')
 
     # 👇 Obtenemos la asignatura y el tema desde la primera pregunta
@@ -441,7 +472,7 @@ def submit_exam(request):
         #print("Type of questions:", type(questions))  # 👉 Debe mostrar <class 'list'>
         #print("Questions:", questions)  # 👉 Debe mostrar la lista de preguntas
         if not isinstance(questions, list):
-            messages.error(request, "⚠️ Datos del examen inválidos.")
+            messages.error(request, "Datos del examen inválidos.")
             return redirect('index')
 
         user_answers = {}

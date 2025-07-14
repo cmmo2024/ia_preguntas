@@ -4,9 +4,24 @@
 <!-- Formulario principal -->
 <h3>Pregunta a la IA</h3>
 {% if messages %}
-<div class="alert alert-danger">
+<div class="container mt-3">
     {% for message in messages %}
-    <p>{{ message }}</p>
+    <div class="alert alert-{{ message.tags|default:"info" }} d-flex align-items-center justify-content-between fade show animate__animated animate__fadeInDown"
+         role="alert" style="margin-bottom: 1rem;">
+        <div class="d-flex align-items-center">
+            {% if message.tags == "success" %}
+            <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "error" or message.tags == "danger" %}
+            <i class="bi bi-exclamation-octagon-fill text-danger me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "warning" %}
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.2rem;"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+            {% endif %}
+        <span>{{ message }}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     {% endfor %}
 </div>
 {% endif %}

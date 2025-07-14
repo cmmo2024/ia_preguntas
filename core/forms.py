@@ -28,10 +28,23 @@ class QuestionForm(forms.Form):
     )
     model = forms.ChoiceField(choices=IA_MODELS, label="Modelo de IA")
 
+
+from django.core.exceptions import ValidationError
+
 class RegisterForm(forms.Form):
     username = forms.CharField(label="Usuario", max_length=100)
     password1 = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
     password2 = forms.CharField(label="Repetir contraseña", widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("⚠️ Las contraseñas no coinciden.")
+
+        return cleaned_data
 
 class LoginForm(forms.Form):
     username = forms.CharField(label="Usuario")
