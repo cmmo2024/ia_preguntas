@@ -27,4 +27,5 @@ urlpatterns = [
     #path('accounts/login/', allauth_views.login, name="login"),
     #path('accounts/logout/', allauth_views.logout, name="logout"),
     path('transfermovil/', views.transfermovil_view, name='transfermovil'),
+    path('soporte/', views.faq_chatbot, name='faq_chatbot'),
 ]

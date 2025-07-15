@@ -305,10 +305,12 @@ def load_topics(request):
     return JsonResponse({'topics': list(topics)})
 
 def about_view(request):
-    return render(request, 'core/about.html')
+    support_email = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tutoria.com')
+    return render(request, 'core/about.html', {'support_email': support_email})
 
 def help_view(request):
-    return render(request, 'core/help.html')
+    support_email = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tutoria.com')
+    return render(request, 'core/help.html', {'support_email': support_email})
 
 
 from django.contrib.auth.decorators import user_passes_test
@@ -663,3 +665,63 @@ def transfermovil_view(request):
     }
     return render(request, 'core/transfermovil.html', context)
    
+
+# Chatbot sin IA ---------------------------------------------------
+from django.http import JsonResponse
+import json
+import unicodedata
+
+def faq_chatbot(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            question = data.get('question', '').strip().lower()
+            
+            # Función para quitar acentos y normalizar texto
+            def normalize(text):
+                return ''.join(
+                    c for c in unicodedata.normalize('NFD', text)
+                    if unicodedata.category(c) != 'Mn'
+                ).lower().replace("?", "").strip()
+
+            normalized_question = normalize(question)
+
+            # Respuestas predefinidas (sin IA)
+            responses = {
+                "como funciona el examen": "El examen te permite generar un cuestionario tipo test con 7 preguntas basadas en un tema específico.",
+                "puedo usar la app sin registrarme": "Sí, puedes hacer hasta 5 preguntas como invitado, pero no podrás guardar historial ni generar exámenes.",
+                "como hago una pregunta a la ia": "Selecciona una asignatura y tema, escribe tu pregunta y haz clic en 'Enviar Pregunta'.",
+                "que modelos de ia usan": "Usamos Mistral 7B y Qwen 2.5, ambos gratuitos y eficientes.",
+                "cuantas preguntas puedo hacer por dia": "Usuarios gratuitos pueden hacer 5 preguntas diarias. Usuarios premium: 100 preguntas.",
+                "como genero un examen": "Haz clic en el botón 'Aplicar Examen' tras seleccionar una asignatura y tema.",
+                "donde veo mi historial": "Tu historial aparece automáticamente después de enviar preguntas.",
+                "por que no me deja hacer mas preguntas": "Puede ser que hayas alcanzado tu límite diario.",
+                "como mejoro a premium": "Ve a tu perfil y haz clic en 'Upgrade a Premium'",
+                "que pasa si pago el plan": "Podrás hacer hasta 100 preguntas diarias y acceder a todos los temas y exámenes.",
+                "como elimino mi historial": "Haz clic en el botón 'Eliminar' junto a cada conversación.",
+                "el login social esta disponible": "Actualmente está pendiente. Pronto ofreceremos inicio de sesión con Google y Facebook.",
+                "tienen soporte tecnico": "Sí, escríbenos al correo de soporte desde la página de ayuda.",
+                "como contacto con soporte": "En la sección de Ayuda encontrarás un correo de contacto.",
+                "hay limite de tiempo en el examen": "No, tienes todo el tiempo que necesites para responderlo.",
+                "se guardan mis respuestas del examen": "Sí, se muestran al final del examen.",
+                "cual es el limite de uso gratis": "Usuarios gratuitos pueden hacer 5 preguntas diarias y solo tienen acceso al primer tema de cada asignatura.",
+                "como se reinician las cuotas": "Cada 30 días, según tu fecha de registro.",
+                "que pasa al terminar el periodo": "Vuelves al plan gratuito, con 5 preguntas diarias y temas limitados.",
+                "como subo nuevos temas": "Solo usuarios administradores pueden cargar temas desde el panel de carga de archivos.",
+                "donde estan mis estadisticas": "Todas tus estadísticas están en la página de tu Perfil.",
+                "como corrijo una respuesta erronea de la ia": "Lo sentimos, actualmente no puedes corregir directamente las respuestas de la IA.",
+                "puedo usar la app offline": "No, necesitas conexión a internet para interactuar con la IA."
+            }
+
+            answer = "Lo siento, no tengo una respuesta para esa pregunta aún. Contáctanos por correo."
+
+            for key in responses:
+                if normalized_question in normalize(key):
+                    answer = responses[key]
+                    break
+
+            return JsonResponse({'answer': answer})
+        except json.JSONDecodeError:
+            return JsonResponse({'answer': '⚠️ Error al procesar tu pregunta.'})
+    else:
+        return JsonResponse({'answer': '⚠️ Solo acepto preguntas POST.'})

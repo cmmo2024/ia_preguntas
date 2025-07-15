@@ -174,3 +174,13 @@ ul, ol {
     color: #0c5460;
     border-color: #bee5eb;
 }
+
+/* === Chatbot simple === */
+#chatbot-form input[type="text"] {
+    font-size: 0.9rem;
+}
+
+#chat-response .alert {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+}
