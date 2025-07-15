@@ -184,3 +184,14 @@ ul, ol {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
 }
+
+/* Respuestas de examenes */
+.correct {
+    color: green;
+}
+.incorrect {
+    color: red;
+}
+.card-body ul li {
+    margin-bottom: 0.5rem;
+}

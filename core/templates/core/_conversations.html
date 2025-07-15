@@ -12,7 +12,10 @@
             <!-- Botón eliminar -->
             <form action="{% url 'delete_conversation' conv.id %}" method="post" class="position-absolute top-0 end-0 m-2">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar pregunta"
+                        onclick="return confirm('¿Estás seguro de que quieres eliminar esta conversación?')">
+                    <i class="bi bi-trash"></i>
+                </button>
             </form>
         </div>
         {% endfor %}

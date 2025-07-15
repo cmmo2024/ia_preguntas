@@ -28,4 +28,6 @@ urlpatterns = [
     #path('accounts/logout/', allauth_views.logout, name="logout"),
     path('transfermovil/', views.transfermovil_view, name='transfermovil'),
     path('soporte/', views.faq_chatbot, name='faq_chatbot'),
+    path('exam/<int:exam_id>/', views.exam_detail, name='exam_detail'),
+    path('examen/eliminar/<int:exam_id>/', views.delete_exam, name='delete_exam'),
 ]

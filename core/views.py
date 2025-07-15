@@ -328,6 +328,11 @@ def is_superuser(user):
 #@user_passes_test(is_superuser, login_url='index')
 @login_required
 def upload_topics_view(request):
+    profile = request.user.userprofile
+    if profile.plan != 'premium':
+        messages.error(request, "Esta funcionalidad está disponible solo para usuarios con plan Premium.")
+        return redirect('index')  # O a profile.html si prefieres mostrar opción de Upgrade
+    # Si es premium, continúa con la carga de temas
     if request.method == 'POST':
         form = UploadTopicsForm(request.POST, request.FILES)
         if form.is_valid():
@@ -467,14 +472,18 @@ def parse_exam(text):
     return questions
 
 # Aplicar Examen----------------------------------------------------------------------
+
+from .models import Exam
+
 @login_required
 def submit_exam(request):
     if request.method == 'POST':
         questions = request.session.get('exam_questions', [])
-        #print("Type of questions:", type(questions))  # 👉 Debe mostrar <class 'list'>
-        #print("Questions:", questions)  # 👉 Debe mostrar la lista de preguntas
+        topic_name = request.session.get('exam_topic', 'Tema')
+        subject_name = request.session.get('exam_subject', 'Asignatura')
+
         if not isinstance(questions, list):
-            messages.error(request, "Datos del examen inválidos.")
+            messages.error(request, "⚠️ Datos del examen inválidos.")
             return redirect('index')
 
         user_answers = {}
@@ -483,74 +492,95 @@ def submit_exam(request):
         for key in request.POST:
             if key.startswith('q'):
                 suffix = key[1:]
-
-                # Verificar que sea dígito antes de convertir
                 if not suffix.isdigit():
-                    continue  # o mostrar mensaje de error
-
+                    continue
                 question_num = int(suffix) - 1
-
-                # Asegurarnos que el índice esté dentro del rango
                 if question_num < 0 or question_num >= len(questions):
-                    messages.warning(request, f"Pregunta {question_num + 1} fuera de rango.")
                     continue
 
                 user_answer_index = request.POST.get(key)
+                selected_letter = chr(97 + int(user_answer_index))
+                correct_letter = questions[question_num]['correct']
+                is_correct = selected_letter == correct_letter
 
-                if user_answer_index.isdigit():
-                    selected_index = int(user_answer_index)
-                    correct_letter = chr(97 + selected_index)
-                else:
-                    messages.warning(request, f"Selección inválida en pregunta {question_num + 1}")
-                    continue
-
-                # 👇 Aquí está la línea que fallaba:
-                correct_answer = questions[question_num]['correct']
-
-                is_correct = correct_letter == correct_answer
                 if is_correct:
                     correct_count += 1
 
                 user_answers[key] = {
                     'text': questions[question_num]['text'],
                     'options': questions[question_num]['options'],
-                    'selected': correct_letter,
-                    'correct': correct_answer,
+                    'selected': selected_letter,
+                    'correct': correct_letter,
                     'is_correct': is_correct
                 }
+
+        # Guardar en la base de datos
+        try:
+            exam = Exam.objects.create(
+                user=request.user,
+                subject_name=subject_name,
+                topic_name=topic_name,
+                questions=questions,
+                user_answers=user_answers,
+                correct_count=correct_count,
+                total_questions=len(questions)
+            )
+        except Exception as e:
+            messages.error(request, f"❌ Error al guardar el examen: {e}")
 
         return render(request, 'core/exam_result.html', {
             'user_answers': user_answers,
             'total': len(questions),
             'correct_count': correct_count
         })
-
     else:
         return redirect('index')
     
 # Perfil de usuario----------------------------------------------------------------------
 from .models import UserProfile, Conversation
 from django.shortcuts import render
+from .models import UserProfile, Exam
 
 @login_required
 def profile_view(request):
+    # Obtener o crear perfil de usuario
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
 
-    # Estadísticas de exámenes
-    exam_results = request.session.get('exam_results', [])
-    total_exams = len(exam_results)
-    correct_answers = sum(result['correct_count'] for result in exam_results)
-    total_questions = sum(result['total'] for result in exam_results)
+    # Obtener exámenes desde la base de datos
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]  # Últimos 10 exámenes
+
+    # Calcular estadísticas
+    total_exams = exams.count()
+    correct_answers = sum(exam.correct_count for exam in exams)
+    total_questions = sum(exam.total_questions for exam in exams)
     average_score = round(correct_answers / total_questions * 100, 2) if total_questions else 0
 
     context = {
-        'user': request.user,
         'profile': user_profile,
+        'exams': exams,
         'total_exams': total_exams,
+        'correct_answers': correct_answers,
+        'total_questions': total_questions,
         'average_score': average_score,
-        'exam_history': exam_results,
     }
+
     return render(request, 'core/profile.html', context)
+
+# Borrar examen de historial y de la BD---------------------------
+from django.shortcuts import get_object_or_404, redirect
+
+@login_required
+def delete_exam(request, exam_id):
+    exam = get_object_or_404(Exam, id=exam_id, user=request.user)
+    exam.delete()
+    messages.success(request, "Examen eliminado correctamente.")
+    return redirect('profile')
+
+# exam_detail------------------------------------------------------------------
+@login_required
+def exam_detail(request, exam_id):
+    exam = get_object_or_404(Exam, id=exam_id, user=request.user)
+    return render(request, 'core/exam_detail.html', {'exam': exam})
 
 # Pago con Stripe...--------------------------------------------------------------------
 import stripe

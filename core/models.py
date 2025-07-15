@@ -31,12 +31,12 @@ class UserProfile(models.Model):
 
     def can_make_request(self):
         self.reset_period_if_needed()
-        limit = 5 if self.plan == 'free' else 100
+        limit = 20 if self.plan == 'free' else 100 # Cambiar estos valores para modificar Preguntas/Plan
         return self.daily_ia_requests < limit
 
     def can_take_exam(self):
         self.reset_period_if_needed()
-        limit = 5 if self.plan == 'free' else 40
+        limit = 20 if self.plan == 'free' else 100 # Cambiar estos valores para modificar Exámenes/Plan
         return self.daily_exams < limit
 
     def increment_request(self):
@@ -81,3 +81,18 @@ class Conversation(models.Model):
 
     def __str__(self):
         return f"{self.topic}: {self.question[:30]}..."
+    
+import jsonfield  # Instala si no lo tienes: pip install jsonfield
+
+class Exam(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subject_name = models.CharField(max_length=255)
+    topic_name = models.CharField(max_length=255)
+    questions = jsonfield.JSONField()  # Almacena las preguntas y opciones
+    user_answers = jsonfield.JSONField()  # Almacena qué respondió el usuario
+    correct_count = models.PositiveIntegerField(default=0)
+    total_questions = models.PositiveIntegerField(default=7)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Examen de {self.topic_name} - {self.user.username}"    

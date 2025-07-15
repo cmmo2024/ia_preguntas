@@ -94,31 +94,39 @@
         {% endif %}
     </div>
 </div>
+<p> </p>
+<li class="list-group-item">
+    <h3>Estadísticas de Exámenes:</h3>
+    <ul class="mt-3">
+        <li>Promedio: {{ average_score }}%</li>
+        <li>Exámenes realizados: {{ total_exams }}</li>
+        <li>Total de preguntas: {{ total_questions }}</li>
+        <li>Aciertos: {{ correct_answers }}</li>
+    </ul>
+</li>
+<p> </p>
+<li class="list-group-item"><li class="list-group-item">
+    <h3>Historial de exámenes:</h3>
+    <ul class="mt-3 list-unstyled">
+        {% if exams %}
+            {% for exam in exams %}
+                <li class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'exam_detail' exam.id %}" class="text-decoration-none">
+                        {{ exam.topic_name }} ({{ exam.correct_count }}/{{ exam.total_questions }})
+                    </a>
+                    <form action="{% url 'delete_exam' exam.id %}" method="post" class="mb-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar examen"
+                                onclick="return confirm('¿Estás seguro de que quieres eliminar este examen?')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </li>
+            {% endfor %}
+        {% else %}
+            <small>No has realizado exámenes aún.</small>
+        {% endif %}
+    </ul>
+</li>
 
-<h3>Historial de exámenes</h3>
-{% if exam_history %}
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Aciertos</th>
-            <th>Total</th>
-            <th>%</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for exam in exam_history %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ exam.correct_count }}</td>
-                <td>{{ exam.total }}</td>
-                <td>{{ exam.correct_count|div:exam.total|mul:100|floatformat:"2" }}%</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
-<p><strong>Promedio general:</strong> {{ average_score }}%</p>
-{% else %}
-<p>No has realizado ningún examen aún (Hisorial en construcción).</p>
-{% endif %}
 {% endblock %}
