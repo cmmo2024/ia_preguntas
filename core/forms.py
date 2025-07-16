@@ -52,3 +52,30 @@ class LoginForm(forms.Form):
 
 class UploadTopicsForm(forms.Form):
     file = forms.FileField(label="Archivo .txt con temas", help_text="El nombre del archivo será el nombre de la asignatura. Formato: nombre_tema: descripción_tema")
+
+
+from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.models import User
+from .models import ProfessionalCategory
+
+class EditProfileForm(forms.ModelForm):
+    first_name = forms.CharField(label="Nombre completo", required=True)
+    email = forms.EmailField(label="Correo electrónico")
+    password1 = forms.CharField(label="Nueva contraseña", widget=forms.PasswordInput, required=False)
+    password2 = forms.CharField(label="Repetir nueva contraseña", widget=forms.PasswordInput, required=False)
+    category = forms.ChoiceField(choices=ProfessionalCategory.choices, label="Categoría profesional", required=False)
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'email']
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+
+        if password1 or password2:
+            if password1 != password2:
+                raise forms.ValidationError("⚠️ Las contraseñas no coinciden.")
+
+        return cleaned_data

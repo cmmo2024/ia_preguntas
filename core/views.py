@@ -39,7 +39,7 @@ def register_view(request):
 
             # Verificar si el usuario ya existe
             if User.objects.filter(username=username).exists():
-                messages.error(request, "⚠️ El nombre de usuario ya está en uso.")
+                messages.error(request, "El nombre de usuario ya está en uso.")
                 return render(request, 'core/register.html', {'form': form})
             
             # Crear usuario
@@ -54,16 +54,16 @@ def register_view(request):
                   login(request, user)
                   return redirect('index')
             else:
-                 messages.error(request, "⚠️ No se pudo iniciar sesión automáticamente.")
+                 messages.error(request, "No se pudo iniciar sesión automáticamente.")
                  return render(request, 'core/register.html', {'form': form})    
         else:
             # Mostrar todos los errores del formulario
             for field, errors in form.errors.items():
                 for error in errors:
                     if field == '__all__':
-                        messages.error(request, f"⚠️ {error}")
+                        messages.error(request, f"{error}")
                     else:
-                        messages.error(request, f"⚠️ {form.fields[field].label}: {error}")
+                        messages.error(request, f"{form.fields[field].label}: {error}")
             return render(request, 'core/register.html', {'form': form})
     else:
         form = RegisterForm()
@@ -144,7 +144,7 @@ def index(request):
             if 'generate_exam' in request.POST:
                 try:
                     prompt = f"""
-                    Eres un profesor virtual. Genera 7 preguntas de opción múltiple sobre '{selected_topic.name}' 
+                    Eres un profesor virtual. Genera 15 preguntas de opción múltiple sobre '{selected_topic.name}' 
                     de la asignatura '{selected_subject}'.
                     Contexto: {selected_topic.description or ''}
                     
@@ -483,7 +483,7 @@ def submit_exam(request):
         subject_name = request.session.get('exam_subject', 'Asignatura')
 
         if not isinstance(questions, list):
-            messages.error(request, "⚠️ Datos del examen inválidos.")
+            messages.error(request, "Datos del examen inválidos.")
             return redirect('index')
 
         user_answers = {}
@@ -526,7 +526,7 @@ def submit_exam(request):
                 total_questions=len(questions)
             )
         except Exception as e:
-            messages.error(request, f"❌ Error al guardar el examen: {e}")
+            messages.error(request, f"Error al guardar el examen: {e}")
 
         return render(request, 'core/exam_result.html', {
             'user_answers': user_answers,
@@ -598,7 +598,7 @@ from datetime import timezone
 def create_payment(request):
     profile = request.user.userprofile
     if profile.plan == 'premium':
-        messages.warning(request, "⚠️ Ya tienes el plan Premium.")
+        messages.warning(request, "Ya tienes el plan Premium.")
         return redirect('profile')
 
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -625,7 +625,7 @@ def create_payment(request):
         )
         return redirect(checkout_session.url, code=303)
     except Exception as e:
-        messages.error(request, f"❌ Error al procesar el pago: {str(e)}")
+        messages.error(request, f"Error al procesar el pago: {str(e)}")
         return redirect('profile')
     
     # Pago exitoso--------------------------------------------------------------------
@@ -643,7 +643,7 @@ def payment_success(request):
 
 # Pago cancelado------------------------------------------------------------------------
 def payment_cancelled(request):
-    messages.info(request, "❌ El pago fue cancelado.")
+    messages.info(request, "El pago fue cancelado.")
     return redirect('profile')
 # Pago Transfermovil-------------------------------------------------------------------
 # views.py
@@ -667,7 +667,7 @@ def transfermovil_view(request):
         match = re.search(pattern, sms_text)
 
         if not match:
-            messages.error(request, "❌ El texto del SMS no tiene el formato correcto.")
+            messages.error(request, "El texto del SMS no tiene el formato correcto.")
         else:
             beneficiary = match.group(1)
             amount = match.group(2)
@@ -685,9 +685,9 @@ def transfermovil_view(request):
                     messages.success(request, "🎉 ¡Pago validado! Tu plan ha sido actualizado a Premium.")
                     return redirect('profile')
                 else:
-                    messages.error(request, f"❌ El monto del SMS debe ser {amount_required}.")
+                    messages.error(request, f"El monto del SMS debe ser {amount_required}.")
             else:
-                messages.error(request, "❌ Los dígitos del beneficiario no coinciden con la cuenta destino.")
+                messages.error(request, "Los dígitos del beneficiario no coinciden con la cuenta destino.")
 
     context = {
         'account_number': account_number,
@@ -755,3 +755,60 @@ def faq_chatbot(request):
             return JsonResponse({'answer': '⚠️ Error al procesar tu pregunta.'})
     else:
         return JsonResponse({'answer': '⚠️ Solo acepto preguntas POST.'})
+    
+# Editar Perfil de Usuariofrom django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash  # Importante tras cambiar contraseña
+from django.http import HttpResponse
+from .forms import EditProfileForm
+from .models import ProfessionalCategory
+
+
+@login_required
+def edit_profile_view(request):
+    if request.method == 'POST':
+        user = request.user
+        user.username = request.POST.get('username', user.username)
+        user.email = request.POST.get('email', user.email)
+        user.first_name = request.POST.get('first_name', user.first_name)
+
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+
+        # Guardar categoría profesional
+        category = request.POST.get('category', '')
+        profile = user.userprofile
+        if category:
+            profile.category = category
+            profile.save()
+
+        # Validación de contraseña
+        if password1 or password2:
+            if password1 != password2:
+                messages.error(request, "Las contraseñas no coinciden.")
+                return redirect('edit_profile')
+
+            # Solo cambiamos la contraseña si ambas están llenas
+            if password1 and password2:
+                user.set_password(password1)
+                user.save()
+                update_session_auth_hash(request, user)  # Evita logout automático
+                messages.success(request, "Contraseña actualizada correctamente.")
+            elif password1 or password2:
+                messages.warning(request, "Debes escribir la misma contraseña en ambos campos.")
+
+        else:
+            user.save()
+            messages.success(request, "Datos actualizados correctamente.")
+
+        return redirect('profile')
+
+    else:
+        profile = request.user.userprofile
+        return render(request, 'core/edit_profile.html', {
+            'user': request.user,
+            'profile': profile,
+            'categories': ProfessionalCategory.choices
+        })

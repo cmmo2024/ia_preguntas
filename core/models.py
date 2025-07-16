@@ -5,6 +5,15 @@ from django.contrib.auth.models import User
 from datetime import timedelta
 from django.utils import timezone
 
+class ProfessionalCategory(models.TextChoices):
+    MATEMATICAS = 'matematicas', 'Matemáticas'
+    FISICA = 'fisica', 'Física'
+    QUIMICA = 'quimica', 'Química'
+    BIOLOGIA = 'biologia', 'Biología'
+    INFORMATICA = 'informatica', 'Informática'
+    MEDICINA = 'medicina', 'Medicina'
+    OTRO = 'otro', 'Otro'
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     PLAN_CHOICES = (
@@ -20,6 +29,15 @@ class UserProfile(models.Model):
     # Periodo de validez actual
     period_start = models.DateField(auto_now_add=True)
     period_days = models.PositiveIntegerField(default=30)  # duración del periodo
+
+    # Preferencia Perfil usuario
+    category = models.CharField(
+        max_length=20,
+        choices=ProfessionalCategory.choices,
+        default=ProfessionalCategory.OTRO,
+        null=True,
+        blank=True
+    )
 
     def reset_period_if_needed(self):
         today = timezone.now().date()

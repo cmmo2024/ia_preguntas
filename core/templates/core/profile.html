@@ -3,7 +3,10 @@
 {% load math_filters date_filters %} <!-- Importante -->
 {% load static %}
 {% block content %}
-<h2>Perfil de {{ user.username }}</h2>
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Perfil de {{ user.username }}</h2>
+    <a href="{% url 'edit_profile' %}" class="btn btn-sm btn-outline-primary">Editar perfil</a>
+</div>
 <!-- Aquí mostramos los mensajes -->
 {% if messages %}
 <div class="container mt-3">
@@ -32,8 +35,12 @@
     <div class="col-md-8">
         <ul class="list-group mb-4">
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span><strong>Nombre:</strong></span>
+                <span><strong>Nombre de Usuario:</strong></span>
                 <span>{{ user.username }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Nombre completo:</strong></span>
+                <span>{{ user.first_name|default:"No definido" }}</span>
             </li>
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span><strong>Email:</strong></span>
@@ -42,6 +49,10 @@
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span><strong>Plan:</strong></span>
                 <span class="badge bg-primary">{{ profile.get_plan_display }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Categoría profesional:</strong></span>
+                <span>{{ user.userprofile.get_category_display|default:"No definida" }}</span>
             </li>
             <li class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">

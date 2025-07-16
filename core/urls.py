@@ -30,4 +30,5 @@ urlpatterns = [
     path('soporte/', views.faq_chatbot, name='faq_chatbot'),
     path('exam/<int:exam_id>/', views.exam_detail, name='exam_detail'),
     path('examen/eliminar/<int:exam_id>/', views.delete_exam, name='delete_exam'),
+    path('perfil/editar/', views.edit_profile_view, name='edit_profile'),
 ]
