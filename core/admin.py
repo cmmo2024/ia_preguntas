@@ -5,7 +5,7 @@ from .models import Subject, Topic, Conversation, UserProfile
 # Registro básico del modelo UserProfile
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'plan', 'daily_ia_requests', 'daily_exams', 'period_start', 'period_days')
+    list_display = ('user', 'plan', 'daily_requests', 'total_requests', 'period_start')
     search_fields = ('user__username',)
     list_filter = ('plan',)
     raw_id_fields = ('user',)  # Mejora la selección de usuarios en grandes bases de datos

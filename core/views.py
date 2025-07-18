@@ -91,14 +91,14 @@ def login_view(request):
 # Index----Vista de Tutor-IA-------------------------------------------------
 @login_required
 def index(request):
-    #-----Cheque del Plan--------
+    #-----Chequeo del Plan--------
     profile = request.user.userprofile
-    profile.reset_period_if_needed()
+    #profile.reset_period_if_needed()
 
     if not profile.can_make_request():
         messages.warning(request, "Has alcanzado el límite de peticiones.")
         return redirect('profile')
-    #-----Cheque del Plan--------
+    #-----Chequeo del Plan--------
 
     # Cargar valores de filtro desde URL (?subject=X&topic=Y)
     subject_filter = request.GET.get('subject')

@@ -54,36 +54,38 @@
                 <span><strong>Categoría profesional:</strong></span>
                 <span>{{ user.userprofile.get_category_display|default:"No definida" }}</span>
             </li>
+            {% with config=profile.plan_config %}
             <li class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">
-                    <span><strong>Preguntas realizadas:</strong></span>
-                    <span>{{ profile.daily_ia_requests }} / {% if profile.plan == 'free' %}5{% else %}100{% endif %}</span>
+                    <span><strong>Peticiones a la IA:</strong></span>
+                    <span>
+                        {% if profile.plan == 'free' %}
+                            {{ profile.daily_requests }} / {{ config.daily_requests }}
+                        {% else %}
+                            {{ profile.total_requests }} / {{ config.total_requests }}
+                        </span>
+                    {% endif %}
                 </div>
+
                 <!-- Barra de progreso -->
-                <div class="progress mt-1" style="height: 12px;">
+                <div class="progress mt-1" style="height: 20px;">
                     <div class="progress-bar" role="progressbar"
-                         style="width: {{ profile.daily_ia_requests|div:profile.max_daily_requests|mul:100 }}%">
-                        {{ profile.daily_ia_requests|div:profile.max_daily_requests|mul:100|floatformat:"0" }}%
+                        style="
+                            {% if profile.plan == 'free' %}
+                                width: {{ profile.daily_requests|div:config.daily_requests|mul:100 }}%;
+                            {% else %}
+                                width: {{ profile.total_requests|div:config.total_requests|mul:100 }}%;
+                            {% endif %}">
+                        {% if profile.plan == 'free' %}
+                            {{ profile.daily_requests|div:config.daily_requests|mul:100|floatformat:"0" }}%
+                        {% else %}
+                            {{ profile.total_requests|div:config.total_requests|mul:100|floatformat:"0" }}%
+                        {% endif %}
                     </div>
                 </div>
-            </li>
-            <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><strong>Exámenes realizados:</strong></span>
-                    <span>{{ profile.daily_exams }} / {% if profile.plan == 'free' %}5{% else %}40{% endif %}</span>
-                </div>
-                <!-- Barra de progreso -->
-                <div class="progress mt-1" style="height: 12px;">
-                    <div class="progress-bar bg-success" role="progressbar"
-                         style="width: {{ profile.daily_exams|div:profile.max_daily_exams|mul:100 }}%">
-                        {{ profile.daily_exams|div:profile.max_daily_exams|mul:100|floatformat:"0" }}%
-                    </div>
-                </div>
-            </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span><strong>Válido hasta:</strong></span>
-                <span>{{ profile.period_start|add_days:profile.period_days|date:"d/m/Y" }}</span>
-            </li>
+            </li>  
+            {% endwith %}  
+                
         </ul>
 
         <!-- Botón Upgrade -->
