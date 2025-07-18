@@ -51,6 +51,9 @@ class UserProfile(models.Model):
         if self.plan == 'free':
             return self.daily_requests < config.daily_requests
         elif self.plan == 'premium':
+            if self.total_requests >= config.total_requests:
+                self.reset_to_free()  # 👈 Aquí se llama al método
+                return False
             return self.total_requests < config.total_requests
         return False
 
@@ -60,7 +63,20 @@ class UserProfile(models.Model):
             self.daily_requests += 1
         elif self.plan == 'premium':
             self.total_requests += 1
+            if self.total_requests >= self.plan_config.total_requests:
+                self.reset_to_free()
         self.save()
+
+    def reset_period_if_needed(self):
+        today = timezone.now().date()
+        if self.plan == 'free' and today != self.period_start:
+            self.daily_requests = 0
+            self.period_start = today
+            self.save()
+        elif self.plan == 'premium':
+            config = self.plan_config
+            if self.total_requests >= config.total_requests:
+                self.reset_to_free()
 
     def has_reached_limit(self):
         return not self.can_make_request()

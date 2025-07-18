@@ -91,15 +91,10 @@ def login_view(request):
 # Index----Vista de Tutor-IA-------------------------------------------------
 @login_required
 def index(request):
-    #-----Chequeo del Plan--------
+    
     profile = request.user.userprofile
-    #profile.reset_period_if_needed()
-
-    if not profile.can_make_request():
-        messages.warning(request, "Has alcanzado el límite de peticiones.")
-        return redirect('profile')
-    #-----Chequeo del Plan--------
-
+    profile.reset_period_if_needed()
+    
     # Cargar valores de filtro desde URL (?subject=X&topic=Y)
     subject_filter = request.GET.get('subject')
     topic_filter = request.GET.get('topic')
@@ -120,6 +115,12 @@ def index(request):
     if request.method == 'POST':
         form_data = request.POST.copy()
         form = QuestionForm(form_data)
+        #-----Chequeo del Plan--------
+        if not profile.can_make_request():
+            messages.warning(request, "Has alcanzado el límite de peticiones.")
+            return redirect('profile')
+        #-----Chequeo del Plan--------
+
 
         # Actualizar queryset de topic
         if 'subject' in request.POST:
@@ -180,7 +181,7 @@ def index(request):
                     if response.status_code != 200:
                         raise Exception(f"Error de API: {response.status_code} - {response.text}")
                     
-                    profile.increment_exam() # Incrementar numero de request para plan
+                    profile.increment_request() # Incrementar numero de request para plan
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
                     
                     questions = parse_exam(ai_response)
@@ -406,12 +407,7 @@ from django.http import HttpResponse
 
 @login_required
 def exam_view(request):
-    #------Chequeo para Plan----------
-    profile = request.user.userprofile
-    if not profile.can_take_exam():
-        messages.warning(request, "Has alcanzado el límite de exámenes.")
-        return redirect('profile')
-    #------Chequeo para Plan----------
+   
     questions = request.session.get('exam_questions', [])
     topic_name = request.session.get('exam_topic', 'Tema')
     subject_name = request.session.get('exam_subject', 'Asignatura')
@@ -419,11 +415,6 @@ def exam_view(request):
     if not questions:
         messages.error(request, "No hay preguntas disponibles.")
         return redirect('index')
-
-    # 👇 Obtenemos la asignatura y el tema desde la primera pregunta
-    #first_question = questions[0] if questions else None
-    #topic_name = first_question['topic'].name if 'topic' in first_question else "Tema"
-    #subject_name = first_question['subject'].name if 'subject' in first_question else "Asignatura"
 
     return render(request, 'core/exam.html', {
         'questions': questions,
@@ -543,20 +534,21 @@ from .models import UserProfile, Exam
 
 @login_required
 def profile_view(request):
-    # Obtener o crear perfil de usuario
-    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    # Obtener perfil del usuario
+    profile = request.user.userprofile
+    profile.reset_period_if_needed()  # Reinicia cuota diaria si es nuevo día
 
-    # Obtener exámenes desde la base de datos
-    exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]  # Últimos 10 exámenes
+    # Obtener últimos exámenes (opcional)
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]
 
-    # Calcular estadísticas
+    # Calcular estadísticas (solo si las muestras en la plantilla)
     total_exams = exams.count()
     correct_answers = sum(exam.correct_count for exam in exams)
     total_questions = sum(exam.total_questions for exam in exams)
     average_score = round(correct_answers / total_questions * 100, 2) if total_questions else 0
 
     context = {
-        'profile': user_profile,
+        'profile': profile,
         'exams': exams,
         'total_exams': total_exams,
         'correct_answers': correct_answers,
