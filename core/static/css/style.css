@@ -213,3 +213,33 @@ ul, ol {
     white-space: nowrap;
     min-width: 20px; /* Evita que desaparezca en 0% */
 }
+
+/* Nuevos estilos para base.html  */
+/* Ajuste del navbar en escritorio */
+.navbar-nav .nav-link {
+    padding: 0.5rem 1rem;
+}
+
+.navbar-nav .nav-item {
+    margin-left: 0.5rem;
+}
+
+/* Ajuste en escritorio para mejor distribución */
+@media (min-width: 992px) {
+    .navbar-nav {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+}
+
+/* Estilo para el avatar y badge */
+.badge.rounded-circle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    background-color: #0d6efd;
+}
