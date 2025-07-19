@@ -4,9 +4,24 @@
 <!-- Formulario principal -->
 <h3>Pregunta a la IA</h3>
 {% if messages %}
-<div class="alert alert-danger">
+<div class="container mt-3">
     {% for message in messages %}
-    <p>{{ message }}</p>
+    <div class="alert alert-{{ message.tags|default:"info" }} d-flex align-items-center justify-content-between fade show animate__animated animate__fadeInDown"
+         role="alert" style="margin-bottom: 1rem;">
+        <div class="d-flex align-items-center">
+            {% if message.tags == "success" %}
+            <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "error" or message.tags == "danger" %}
+            <i class="bi bi-exclamation-octagon-fill text-danger me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "warning" %}
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.2rem;"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+            {% endif %}
+        <span>{{ message }}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     {% endfor %}
 </div>
 {% endif %}
@@ -88,9 +103,11 @@
     {% include "core/_conversations.html" %}
 </div>
 
-<!-- Script para micrófono -->
+<!-- Scripts unificados -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js "></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // 1. Reconocimiento de voz
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -101,62 +118,66 @@ document.addEventListener('DOMContentLoaded', function () {
         const micBtn = document.getElementById('btn-mic');
         const questionInput = document.querySelector('#id_question');
 
-        micBtn.addEventListener('click', () => {
-            recognition.start();
-            micBtn.classList.add('btn-outline-danger');
-            micBtn.innerHTML = '<i class="bi bi-mic-fill text-danger"></i>';
-        });
+        if (micBtn && questionInput) {
+            micBtn.addEventListener('click', () => {
+                recognition.start();
+                micBtn.classList.add('btn-outline-danger');
+                micBtn.innerHTML = '<i class="bi bi-mic-fill text-danger"></i>';
+            });
 
-        recognition.addEventListener('result', e => {
-            const transcript = e.results[0][0].transcript;
-            questionInput.value += transcript + ' ';
-            recognition.stop();
-            micBtn.classList.remove('btn-outline-danger');
-            micBtn.innerHTML = '<i class="bi bi-mic"></i>';
-        });
+            recognition.addEventListener('result', e => {
+                const transcript = e.results[0][0].transcript;
+                questionInput.value += transcript + ' ';
+                recognition.stop();
+                micBtn.classList.remove('btn-outline-danger');
+                micBtn.innerHTML = '<i class="bi bi-mic"></i>';
+            });
 
-        recognition.addEventListener('end', () => {
-            micBtn.classList.remove('btn-outline-danger');
-            micBtn.innerHTML = '<i class="bi bi-mic"></i>';
-        });
+            recognition.addEventListener('end', () => {
+                micBtn.classList.remove('btn-outline-danger');
+                micBtn.innerHTML = '<i class="bi bi-mic"></i>';
+            });
+        }
     } else {
         console.warn("Tu navegador no soporta reconocimiento de voz.");
     }
 
-    // Cargar temas dinámicamente según asignatura seleccionada
-    const subjectSelect = document.querySelector('#id_subject');
-    const topicSelect = document.querySelector('#id_topic');
+    // 2. Cargar temas dinámicamente según asignatura seleccionada (Formulario principal)
+    const subjectSelectMain = document.querySelector('#id_subject');
+    const topicSelectMain = document.querySelector('#id_topic');
 
-    function loadTopics(subjectId) {
+    function loadTopics(subjectId, callback) {
         fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
             .then(response => response.json())
             .then(data => {
-                topicSelect.innerHTML = '<option value="">---------</option>';
+                topicSelectMain.innerHTML = '<option value="">---------</option>';
                 data.topics.forEach(function (topic) {
                     const option = document.createElement('option');
                     option.value = topic.id;
                     option.text = topic.name;
-                    topicSelect.appendChild(option);
+                    topicSelectMain.appendChild(option);
                 });
+                if (callback) callback();
             });
     }
 
-    subjectSelect.addEventListener('change', function () {
-        const subjectId = this.value;
-        if (subjectId) {
-            loadTopics(subjectId);
-        } else {
-            topicSelect.innerHTML = '<option value="">---------</option>';
-        }
-    });
+    if (subjectSelectMain && topicSelectMain) {
+        subjectSelectMain.addEventListener('change', function () {
+            const subjectId = this.value;
+            if (subjectId) {
+                loadTopics(subjectId);
+            } else {
+                topicSelectMain.innerHTML = '<option value="">---------</option>';
+            }
+        });
 
-    // Cargar temas iniciales si hay asignatura seleccionada
-    const selectedSubject = subjectSelect.value;
-    if (selectedSubject) {
-        loadTopics(selectedSubject);
+        const selectedSubject = subjectSelectMain.value;
+        if (selectedSubject) {
+            loadTopics(selectedSubject);
+        }
     }
-});
-document.addEventListener('DOMContentLoaded', function () {
+
+    // 3. Filtro de temas en interfaz de usuario (Filtro de búsqueda)
     const subjectFilter = document.getElementById('filter-subject');
     const topicFilter = document.getElementById('filter-topic');
 
@@ -168,93 +189,82 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(`{% url 'ajax_load_topics' %}?subject=${subjectId}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Limpiar opciones actuales
+                    const topicFilter = document.getElementById('filter-topic');
                     topicFilter.innerHTML = '<option value="">Todos los temas</option>';
+                    const topicFilterValue = "{{ topic_filter }}";
 
-                    // Añadir temas filtrados
                     data.topics.forEach(function (topic) {
                         const option = document.createElement('option');
                         option.value = topic.id;
                         option.textContent = topic.name;
-                        if ("{{ topic_filter }}" === topic.id.toString()) {
+                        if (topic.id.toString() === topicFilterValue) {
                             option.selected = true;
                         }
                         topicFilter.appendChild(option);
                     });
 
-                    // Enviar automáticamente el formulario si quieres
-                    // topicFilter.closest("form").submit();
+                    applyFilters();
                 });
         });
     }
-});
-</script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js "></script>
-<script>
-// Función para aplicar filtros sin recargar toda la página
-function applyFilters() {
-    const subjectId = document.getElementById("filter-subject").value;
-    const topicId = document.getElementById("filter-topic").value;
 
-    // Enviamos los datos por AJAX
-    $.get("?", { subject: subjectId, topic: topicId }, function(data) {
-        $("#conversations-container").html(data.html);
-    });
-}
+    // 4. Función para aplicar filtros con AJAX
+    function applyFilters() {
+        const subjectId = document.getElementById("filter-subject").value;
+        const topicId = document.getElementById("filter-topic").value;
 
-document.addEventListener("DOMContentLoaded", function () {
-    const subjectSelect = document.getElementById("filter-subject");
-    const topicSelect = document.getElementById("filter-topic");
+        $.get("?", { subject: subjectId, topic: topicId }, function(data) {
+            $("#conversations-container").html(data.html);
+        });
+    }
 
-    // 👇 Al cambiar asignatura, recargamos temas y el historial
-    subjectSelect.addEventListener("change", function () {
-        const subjectId = this.value;
-        const topicFilter = "{{ topic_filter }}";
+    // 5. Escuchar cambios en los filtros y botón de limpiar
+    const subjectSelectFilter = document.getElementById("filter-subject");
+    const topicSelectFilter = document.getElementById("filter-topic");
 
-        // Limpiamos el campo de tema si no hay asignatura
-        if (!subjectId) {
-            topicSelect.innerHTML = '<option value="">Todos los temas</option>';
-            applyFilters();
-            return;
-        }
+    if (subjectSelectFilter && topicSelectFilter) {
+        subjectSelectFilter.addEventListener("change", function () {
+            const subjectId = this.value;
+            const topicFilterValue = "{{ topic_filter }}";
 
-        // Recargar temas según asignatura
-        fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
-            .then(response => response.json())
-            .then(data => {
-                // Limpiar opciones actuales
-                topicSelect.innerHTML = '<option value="">Todos los temas</option>';
-
-                // Añadir nuevas opciones
-                data.topics.forEach(function (topic) {
-                    const option = document.createElement("option");
-                    option.value = topic.id;
-                    option.textContent = topic.name;
-                    if (topic.id.toString() === topicFilter) {
-                        option.selected = true;
-                    }
-                    topicSelect.appendChild(option);
-                });
-
-                // Actualizar historial
+            if (!subjectId) {
+                topicSelectFilter.innerHTML = '<option value="">Todos los temas</option>';
                 applyFilters();
-            });
-    });
+                return;
+            }
 
-    // 👇 Al cambiar tema, recargar historial
-    topicSelect.addEventListener("change", function () {
-        applyFilters();
-    });
+            fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
+                .then(response => response.json())
+                .then(data => {
+                    topicSelectFilter.innerHTML = '<option value="">Todos los temas</option>';
+                    data.topics.forEach(function (topic) {
+                        const option = document.createElement("option");
+                        option.value = topic.id;
+                        option.textContent = topic.name;
+                        if (topic.id.toString() === topicFilterValue) {
+                            option.selected = true;
+                        }
+                        topicSelectFilter.appendChild(option);
+                    });
 
-    // 👇 Botón "Limpiar"
-    const clearBtn = document.querySelector("#clear-filters");
-    if (clearBtn) {
-        clearBtn.addEventListener("click", function (e) {
-            e.preventDefault();
-            document.getElementById("filter-subject").value = "";
-            document.getElementById("filter-topic").value = "";
+                    applyFilters();
+                });
+        });
+
+        topicSelectFilter.addEventListener("change", function () {
             applyFilters();
         });
+
+        const clearBtn = document.querySelector("#clear-filters");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                document.getElementById("filter-subject").value = "";
+                document.getElementById("filter-topic").value = "";
+                topicSelectFilter.innerHTML = '<option value="">Todos los temas</option>';
+                applyFilters();
+            });
+        }
     }
 });
 </script>

@@ -1,0 +1,58 @@
+<!-- templates/core/edit_profile.html -->
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h4>Editar Perfil</h4>
+        <form method="post">
+            {% csrf_token %}
+            <!-- Nombre de usuario -->
+            <div class="mb-3">
+                <label for="username" class="form-label">Nombre de usuario</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control">
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo electrónico</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" class="form-control">
+            </div>
+
+            <!-- Nombre completo -->
+            <div class="mb-3">
+                <label for="first_name" class="form-label">Nombre completo</label>
+                <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" class="form-control">
+            </div>
+
+            <!-- Categoría profesional -->
+            <div class="mb-3">
+                <label for="category" class="form-label">Categoría profesional</label>
+                <select id="category" name="category" class="form-select">
+                    {% for value, label in categories %}
+                        <option value="{{ value }}" {% if value == profile.category %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Nueva contraseña -->
+            <div class="mb-3">
+                <label for="password1" class="form-label">Nueva contraseña (opcional)</label>
+                <input type="password" id="password1" name="password1" class="form-control" placeholder="Dejar en blanco para no cambiarla">
+            </div>
+
+            <!-- Repetir contraseña -->
+            <div class="mb-3">
+                <label for="password2" class="form-label">Repetir nueva contraseña</label>
+                <input type="password" id="password2" name="password2" class="form-control" placeholder="Repetir contraseña">
+            </div>
+
+            <!-- Botones -->
+            <button type="submit" class="btn btn-success">Guardar cambios</button>
+            <a href="{% url 'profile' %}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

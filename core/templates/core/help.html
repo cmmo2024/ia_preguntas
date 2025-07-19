@@ -1,43 +1,146 @@
-<!-- templates/core/help.html -->
-
 {% extends "base.html" %}
 {% block content %}
-<h1 class="mb-4">Centro de Ayuda</h1>
+<h3>Ayuda</h3>
 
-<h3>¿Cómo uso la aplicación?</h3>
-<ol>
-    <li>Inicia sesión o regístrate si no tienes cuenta.</li>
-    <li>Desde la página principal, selecciona una asignatura y un tema.</li>
-    <li>Escribe tu pregunta y haz clic en "Enviar".</li>
-    <li>La IA responderá y se guardará automáticamente en tu historial.</li>
-</ol>
+<p>Si tienes dudas sobre el uso de la aplicación, revisa las preguntas frecuentes:</p>
 
-<h3>¿Qué modelos de IA están disponibles?</h3>
-<p>Puedes elegir entre estos modelos gratuitos:</p>
-<ul>
-    <li>Mistral 7B</li>
-    <li>Qwen 2.5</li>
-</ul>
+<!-- FAQs -->
+<div class="accordion mb-4" id="faqAccordion">
+    <!-- FAQ 1 -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingOne">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                ¿Cómo funciona el examen?
+            </button>
+        </h2>
+        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">
+                El examen te permite generar un cuestionario tipo test. Solo debes seleccionar una asignatura y tema, y hacer clic en <strong>"Aplicar Examen"</strong>.
+            </div>
+        </div>
+    </div>
 
-<h3>¿Puedo ver mi historial?</h3>
-<p>Sí, puedes acceder a tu historial completo desde el menú hamburguesa.</p>
+    <!-- FAQ 2 -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingTwo">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                ¿Puedo usar la app sin registrarme?
+            </button>
+        </h2>
+        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">
+                No, es obligatorio registrate. Una vez registrado puedes usar la app en plan: free, pero solo podrás hacer hasta 5 preguntas y 2 exámenes. De las asignaturas solo podrás acceder a el 1er tema.
+            </div>
+        </div>
+    </div>
 
-<!-- Nueva sección -->
-<h3>¿Cómo puedo cargar asignaturas y temas desde un archivo?</h3>
-<p>Los usuarios administradores pueden cargar nuevas asignaturas y sus temas usando un archivo de texto con este formato:</p>
+    <!-- FAQ 3 -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingThree">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                ¿Cuántas preguntas puedo hacer por día?
+            </button>
+        </h2>
+        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">
+                Los usuarios gratuitos pueden hacer <strong>5 preguntas diarias</strong>. Los usuarios premium pueden hacer <strong>100 preguntas diarias</strong>.
+            </div>
+        </div>
+    </div>
 
-<pre>
-Álgebra: Una rama de las matemáticas que usa símbolos y reglas para resolver problemas.
-Cálculo: Estudio de cambios continuos, incluye derivadas e integrales.
-Biología celular: Estudio de las células y sus funciones.
-</pre>
+    <!-- FAQ 4 -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingFour">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                ¿Qué sucede cuando se acaba el periodo de 30 días?
+            </button>
+        </h2>
+        <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">
+                Al finalizar el periodo de 30 días, tus peticiones y exámenes se reinician.
+                Si eres usuario gratuito, tu plan vuelve a sus límites originales.
+            </div>
+        </div>
+    </div>
 
-<ul>
-    <li>El nombre del archivo (sin la extensión) se usará como nombre de la asignatura.</li>
-    <li>Si ya existe una asignatura con ese nombre, se actualizarán los temas asociados.</li>
-    <li>Accede desde el menú hamburguesa → “Cargar temas”.</li>
-</ul>
+    <!-- FAQ 5 -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingFive">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                ¿Se guardan mis respuestas del examen?
+            </button>
+        </h2>
+        <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">
+                Sí, tus respuestas del examen se guardan y se muestran al finalizar el examen.
+            </div>
+        </div>
+    </div>
+</div>
 
-<h3>¿Tienes más preguntas?</h3>
-<p>Contáctanos en <a href="mailto:tucorreo@example.com">tucorreo@example.com</a></p>
+<!-- Chatbot simple -->
+<div class="card mt-4 p-3 bg-light border shadow-sm">
+    <h6 class="text-success">💬 Soporte Básico</h6>
+    <small class="text-muted mb-2">Escribe una pregunta sobre el uso de la aplicación.</small>
+
+    <form id="chatbot-form" class="mt-2 mb-3">
+        <input type="text" id="chat-input" class="form-control form-control-sm mb-2" placeholder="Ej: ¿cómo hago un examen?" required>
+        <button type="submit" class="btn btn-sm btn-success w-100">Consultar</button>
+    </form>
+
+    <div id="chat-response" class="mt-2 small text-start"></div>
+</div>
+
+<!-- Correo de soporte -->
+<p class="mt-4">
+    ¿Aún tienes dudas? Escríbenos a <a href="mailto:cmmoprogram@gmail.com">cmmoprogram@gmail.com</a>
+</p>
+
+<!-- Volver al inicio -->
+<a href="{% url 'index' %}" class="btn btn-outline-primary mt-3">Volver al inicio</a>
+
+<script>
+document.getElementById('chatbot-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const question = document.getElementById('chat-input').value.trim();
+
+    fetch('{% url "faq_chatbot" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ question: question })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const responseDiv = document.getElementById('chat-response');
+        
+        // Crear contenedor del mensaje con botón de cierre
+        const answerBox = document.createElement('div');
+        answerBox.className = 'alert alert-info d-flex align-items-center justify-content-between mt-2 position-relative';
+        answerBox.style.maxWidth = '100%';
+        answerBox.style.paddingRight = '2rem'; // espacio para el botón de cierre
+
+        // Contenido del mensaje
+        answerBox.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi bi-robot me-2"></i>
+                <span>${data.answer}</span>
+            </div>
+            <button type="button" class="btn-close position-absolute end-0 top-50 translate-middle-y p-1"
+                    style="font-size: 0.8rem;" 
+                    onclick="this.parentElement.remove()">
+            </button>
+        `;
+
+        // Añadir respuesta al contenedor
+        responseDiv.appendChild(answerBox);
+
+        // Limpiar entrada
+        document.getElementById('chat-input').value = '';
+    });
+});
+</script>
+
 {% endblock %}

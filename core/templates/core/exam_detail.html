@@ -1,0 +1,69 @@
+<!-- templates/core/exam_detail.html -->
+{% extends "base.html" %}
+{% load math_filters %}
+
+{% block content %}
+<h3>Detalles del Examen</h3>
+
+<p><strong>Asignatura:</strong> {{ exam.subject_name }}</p>
+<p><strong>Tema:</strong> {{ exam.topic_name }}</p>
+<p><strong>Fecha:</strong> {{ exam.created_at|date:"d M Y H:i" }}</p>
+{% with correct=exam.correct_count total=exam.total_questions %}
+    {% if total > 0 %}
+        <p><strong>Aciertos:</strong> {{ correct }} / {{ total }} ({{ correct|div:total|mul:100|floatformat:"0" }}%)</p>
+    {% else %}
+        <p><strong>Aciertos:</strong> 0 / 0 (0%)</p>
+    {% endif %}
+{% endwith %}
+
+<div class="mt-4">
+    {% for answer in exam.user_answers.values %}
+        <div class="mb-3 p-3 border rounded 
+            {% if answer.is_correct %}border-success{% else %}border-danger{% endif %}">
+            <strong>{{ answer.text }}</strong>
+            <ul class="mt-2 list-unstyled">
+                <li>
+                    {% if answer.selected == "a" and answer.correct != "a" %}
+                        ❌ {{ answer.options.0 }}
+                    {% elif answer.correct == "a" %}
+                        ✔️ {{ answer.options.0 }}
+                    {% else %}
+                        – {{ answer.options.0 }}
+                    {% endif %}
+                </li>
+                <li>
+                    {% if answer.selected == "b" and answer.correct != "b" %}
+                        ❌ {{ answer.options.1 }}
+                    {% elif answer.correct == "b" %}
+                        ✔️ {{ answer.options.1 }}
+                    {% else %}
+                        – {{ answer.options.1 }}
+                    {% endif %}
+                </li>
+                <li>
+                    {% if answer.selected == "c" and answer.correct != "c" %}
+                        ❌ {{ answer.options.2 }}
+                    {% elif answer.correct == "c" %}
+                        ✔️ {{ answer.options.2 }}
+                    {% else %}
+                        – {{ answer.options.2 }}
+                    {% endif %}
+                </li>
+                <li>
+                    {% if answer.selected == "d" and answer.correct != "d" %}
+                        ❌ {{ answer.options.3 }}
+                    {% elif answer.correct == "d" %}
+                        ✔️ {{ answer.options.3 }}
+                    {% else %}
+                        – {{ answer.options.3 }}
+                    {% endif %}
+                </li>
+            </ul>
+            <small class="text-muted">Seleccionaste: {{ answer.selected }} | Correcta: {{ answer.correct }}</small>
+        </div>
+    {% endfor %}
+</div>
+
+<a href="{% url 'profile' %}" class="btn btn-outline-primary mt-3">Volver al Perfil</a>
+
+{% endblock %}

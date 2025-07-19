@@ -37,18 +37,18 @@
                             <span class="text-white">{{ user.username }}</span>
                         </div>
                     </li>
-
                     <!-- Configuración -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/configuracion/">Configuración</a>
+                        <a class="nav-link" href="{% url 'index' %}">Tutor-IA</a>
                     </li>
-
-                    {% if user.is_superuser %}
+                    <!-- Configuración -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'profile' %}">Perfil</a>
+                    </li>
                     <!-- Cargar temas -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'upload_topics' %}">Cargar temas</a>
                     </li>
-                    {% endif %}
                     <!-- Opciones visibles para todos -->
                     <li class="nav-item mt-2 mt-lg-0">
                         <a class="nav-link" href="{% url 'about' %}">Acerca de</a>
@@ -56,7 +56,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
                     </li>
-
+                    
                     <!-- Separador -->
                     <li class="nav-item dropdown-divider"></li>
                     <li class="custom-divider"></li> <!-- Separador personalizado -->
@@ -84,8 +84,7 @@
         </div>
     </div>
 </nav>
-
-<div class="container">
+<div class="container my-0 py-0">
     {% block content %}
     {% endblock %}
 </div>

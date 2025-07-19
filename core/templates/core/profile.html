@@ -1,0 +1,145 @@
+<!-- templates/core/profile.html -->
+{% extends "base.html" %}
+{% load math_filters date_filters %} <!-- Importante -->
+{% load static %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Perfil de {{ user.username }}</h2>
+    <a href="{% url 'edit_profile' %}" class="btn btn-sm btn-outline-primary">Editar perfil</a>
+</div>
+<!-- Aquí mostramos los mensajes -->
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:"info" }} d-flex align-items-center justify-content-between fade show animate__animated animate__fadeInDown"
+         role="alert" style="margin-bottom: 1rem;">
+        <div class="d-flex align-items-center">
+            {% if message.tags == "success" %}
+            <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "error" or message.tags == "danger" %}
+            <i class="bi bi-exclamation-octagon-fill text-danger me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags == "warning" %}
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.2rem;"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+            {% endif %}
+        <span>{{ message }}</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <ul class="list-group mb-4">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Nombre de Usuario:</strong></span>
+                <span>{{ user.username }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Nombre completo:</strong></span>
+                <span>{{ user.first_name|default:"No definido" }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Email:</strong></span>
+                <span>{{ user.email }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Plan:</strong></span>
+                <span class="badge bg-primary">{{ profile.get_plan_display }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><strong>Categoría profesional:</strong></span>
+                <span>{{ user.userprofile.get_category_display|default:"No definida" }}</span>
+            </li>
+            {% with config=profile.plan_config %}
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><strong>Peticiones a la IA:</strong></span>
+                    <span>
+                        {% if profile.plan == 'free' %}
+                            {{ profile.daily_requests }} / {{ config.daily_requests }}
+                        {% else %}
+                            {{ profile.total_requests }} / {{ config.total_requests }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Barra de progreso -->
+                <div class="progress mt-1" style="height: 20px;">
+                    <div class="progress-bar" role="progressbar"
+                        style="
+                            {% if profile.plan == 'free' %}
+                                width: {{ profile.daily_requests|div:config.daily_requests|mul:100 }}%;
+                            {% else %}
+                                width: {{ profile.total_requests|div:config.total_requests|mul:100 }}%;
+                            {% endif %}">
+                        {% if profile.plan == 'free' %}
+                            {{ profile.daily_requests|div:config.daily_requests|mul:100|floatformat:"0" }}%
+                        {% else %}
+                            {{ profile.total_requests|div:config.total_requests|mul:100|floatformat:"0" }}%
+                        {% endif %}
+                    </div>
+                </div>
+            </li>  
+            {% endwith %}  
+                
+        </ul>
+
+        <!-- Botón Upgrade -->
+        {% if profile.plan != 'premium' %}
+        <h3>Upgrade a Premium</h3>
+        <!-- Botón de pago 
+        <form action="{% url 'create_payment' %}" method="POST">
+            {% csrf_token %}
+           <button type="submit" class="btn btn-success mt-3" style="background-color: blue; color: white;">Pago por Stripe</button>
+        </form>
+        -->
+       <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="https://tppay.me/md0u2ofs " class="btn btn-success mt-3" style="background-color: blue; color: white; padding: 10px 20px; font-size: 16px; display: flex; align-items: center; margin: 0;">
+                Pago por TropiPay
+            </a>
+            <img src="{% static 'images/VisaCard.png' %}" alt="Visa" style="height: 45px; width: auto; vertical-align: middle; display: block;">
+        </div>
+        <a href="{% url 'transfermovil' %}" class="btn btn-success mt-3">Pago por Transfermovil</a>
+        {% endif %}
+    </div>
+</div>
+<p> </p>
+<li class="list-group-item">
+    <h3>Estadísticas de Exámenes:</h3>
+    <ul class="mt-3">
+        <li>Promedio: {{ average_score }}%</li>
+        <li>Exámenes realizados: {{ total_exams }}</li>
+        <li>Total de preguntas: {{ total_questions }}</li>
+        <li>Aciertos: {{ correct_answers }}</li>
+    </ul>
+</li>
+<p> </p>
+<li class="list-group-item"><li class="list-group-item">
+    <h3>Historial de exámenes:</h3>
+    <ul class="mt-3 list-unstyled">
+        {% if exams %}
+            {% for exam in exams %}
+                <li class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'exam_detail' exam.id %}" class="text-decoration-none">
+                        {{ exam.topic_name }} ({{ exam.correct_count }}/{{ exam.total_questions }})
+                    </a>
+                    <form action="{% url 'delete_exam' exam.id %}" method="post" class="mb-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar examen"
+                                onclick="return confirm('¿Estás seguro de que quieres eliminar este examen?')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </li>
+            {% endfor %}
+        {% else %}
+            <small>No has realizado exámenes aún.</small>
+        {% endif %}
+    </ul>
+</li>
+
+{% endblock %}
