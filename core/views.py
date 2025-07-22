@@ -1,6 +1,7 @@
 import os
 import requests
 from django.shortcuts import render, redirect
+from django.db.models import Q, Count
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -135,6 +136,16 @@ def index(request):
             selected_topic = form.cleaned_data['topic']
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
+            
+            # Validar acceso al tema según plan
+            if request.user.is_authenticated and request.user.userprofile.plan == 'free':
+                first_topic = selected_subject.first_topic()
+                if first_topic and selected_topic.id != first_topic.id:
+                    messages.warning(
+                        request, 
+                        f"Tu plan Gratuito solo puedes hacer preguntas al primer tema de cada asignatura: '{first_topic.name}'"
+                    )
+                    return redirect('profile')
 
             # Guardar en sesión para mantener selección
             request.session['subject_id'] = selected_subject.id
@@ -326,62 +337,94 @@ def is_superuser(user):
     return user.is_superuser
 
 # Vista de Cargar Temas de archivo----------------------------------------------------------------------
-#@user_passes_test(is_superuser, login_url='index')
-@login_required
+# views.py
+@user_passes_test(lambda u: u.is_authenticated, login_url='login')
 def upload_topics_view(request):
+    # Verificar plan o permisos
     profile = request.user.userprofile
-    if profile.plan != 'premium':
-        messages.error(request, "Esta funcionalidad está disponible solo para usuarios con plan Premium.")
-        return redirect('index')  # O a profile.html si prefieres mostrar opción de Upgrade
-    # Si es premium, continúa con la carga de temas
+    if not (profile.plan == 'premium' or request.user.is_superuser):
+        messages.error(request, "⚠️ Esta funcionalidad requiere plan Premium o ser administrador.")
+        return redirect('index')
+
     if request.method == 'POST':
         form = UploadTopicsForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file = request.FILES['file']
-
-            # 👇 Nombre del archivo sin extensión → nombre de la asignatura
             subject_name = os.path.splitext(uploaded_file.name)[0].replace('_', ' ').title()
 
-            # 👇 Crear o obtener asignatura
-            subject, created = Subject.objects.get_or_create(name=subject_name)
+            # Decidir si es pública o privada
+            is_public = request.user.is_superuser and 'make_public' in request.POST
 
-            if not created:
-                messages.warning(request, f"La asignatura '{subject_name}' ya existía.")
+            # Crear o obtener asignatura
+            # Decidir si es pública o privada
+            if request.user.is_superuser and 'make_public' in request.POST:
+                # Crear como pública
+                subject, created = Subject.objects.get_or_create(
+                    name=subject_name,
+                    is_public=True,
+                    defaults={'user': None}
+                )
             else:
-                messages.success(request, f"Asignatura '{subject_name}' creada.")
+                # Crear como privada del usuario
+                subject, created = Subject.objects.get_or_create(
+                    name=subject_name,
+                    user=request.user,
+                    is_public=False
+                )
 
             try:
                 raw_data = uploaded_file.read()
                 result = chardet.detect(raw_data)
                 encoding = result['encoding'] or 'utf-8'
                 decoded_file = raw_data.decode(encoding)
-
                 lines = decoded_file.split('\n')
 
                 count = 0
                 for line in lines:
                     if ':' in line:
-                        name, description = line.strip().split(':', 1)
+                        name, desc = line.strip().split(':', 1)
                         Topic.objects.update_or_create(
                             subject=subject,
                             name=name.strip(),
-                            defaults={'description': description.strip()}
+                            defaults={'description': desc.strip()}
                         )
                         count += 1
 
-                messages.success(request, f"Se cargaron {count} temas para '{subject_name}'.")
-            except UnicodeDecodeError as e:
-                messages.error(request, f"Error al decodificar el archivo: {e}")
-            except Exception as e:
-                messages.error(request, f"Error al procesar el archivo: {e}")
+                tipo = "pública" if is_public else "privada"
+                messages.success(request, f"📚 Se cargaron {count} temas en '{subject_name}' ({tipo}).")
 
-        else:
-            messages.error(request, "Formulario inválido.")
+            except Exception as e:
+                messages.error(request, f"Error: {e}")
 
     else:
         form = UploadTopicsForm()
 
-    return render(request, 'core/upload_topics.html', {'form': form})
+    # Mostrar asignaturas: públicas + del usuario
+    subjects = Subject.objects.filter(
+        Q(is_public=True) | Q(user=request.user)
+    ).annotate(topic_count=Count('topic'))
+
+    return render(request, 'core/upload_topics.html', {
+        'form': form,
+        'subjects': subjects,
+        'is_superuser': request.user.is_superuser
+    })
+
+# Borrar Asignatura----------------------------------------------------------------------
+@login_required
+def delete_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+
+    # Solo puede borrar:
+    # - Si es suya (privada)
+    # - O si es pública y es superusuario
+    if subject.user == request.user or (subject.is_public and request.user.is_superuser):
+        subject.delete()
+        messages.success(request, f"Asignatura '{subject.name}' eliminada.")
+    else:
+        messages.error(request, "No tienes permiso para eliminar esta asignatura.")
+
+    return redirect('upload_topics')
 
 # Borrar Conversación----------------------------------------------------------------------
 from .models import Conversation

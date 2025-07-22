@@ -55,36 +55,46 @@
                 <span>{{ user.userprofile.get_category_display|default:"No definida" }}</span>
             </li>
             {% with config=profile.plan_config %}
-            <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><strong>Peticiones a la IA:</strong></span>
-                    <span>
-                        {% if profile.plan == 'free' %}
-                            {{ profile.daily_requests }} / {{ config.daily_requests }}
-                        {% else %}
-                            {{ profile.total_requests }} / {{ config.total_requests }}
-                        </span>
-                    {% endif %}
-                </div>
-
-                <!-- Barra de progreso -->
-                <div class="progress mt-1" style="height: 20px;">
-                    <div class="progress-bar" role="progressbar"
-                        style="
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><strong>Peticiones a la IA:</strong></span>
+                        <span>
                             {% if profile.plan == 'free' %}
-                                width: {{ profile.daily_requests|div:config.daily_requests|mul:100 }}%;
+                                {% if profile.daily_requests >= config.daily_requests %}
+                                    <span class="text-danger">⚠️ Límite alcanzado</span>
+                                {% else %}
+                                    {{ profile.daily_requests }} / {{ config.daily_requests }}
+                                {% endif %}
                             {% else %}
-                                width: {{ profile.total_requests|div:config.total_requests|mul:100 }}%;
-                            {% endif %}">
-                        {% if profile.plan == 'free' %}
-                            {{ profile.daily_requests|div:config.daily_requests|mul:100|floatformat:"0" }}%
-                        {% else %}
-                            {{ profile.total_requests|div:config.total_requests|mul:100|floatformat:"0" }}%
-                        {% endif %}
+                                {{ profile.total_requests }} / {{ config.total_requests }}
+                            {% endif %}
+                        </span>
                     </div>
-                </div>
-            </li>  
-            {% endwith %}  
+
+                    {% if profile.plan == 'free' and profile.daily_requests < config.daily_requests %}
+                        <!-- Barra de progreso para plan free -->
+                        <div class="progress mt-1" style="height: 20px;">
+                            <div class="progress-bar" role="progressbar"
+                                style="width: {{ profile.daily_requests|div:config.daily_requests|mul:100 }}%;">
+                                {{ profile.daily_requests|div:config.daily_requests|mul:100|floatformat:"0" }}%
+                            </div>
+                        </div>
+                    {% elif profile.plan == 'free' and profile.daily_requests >= config.daily_requests %}
+                        <div class="alert alert-warning mt-2 mb-0 small" role="alert">
+                            Has alcanzado el límite de 3 peticiones diarias.  
+                            <strong>Se reiniciará en 24 horas</strong> desde tu última pregunta.  
+                        </div>
+                    {% else %}
+                        <!-- Barra de progreso para plan premium -->
+                        <div class="progress mt-1" style="height: 20px;">
+                            <div class="progress-bar" role="progressbar"
+                                style="width: {{ profile.total_requests|div:config.total_requests|mul:100 }}%;">
+                                {{ profile.total_requests|div:config.total_requests|mul:100|floatformat:"0" }}%
+                            </div>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endwith %}
                 
         </ul>
 

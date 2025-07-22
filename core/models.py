@@ -146,17 +146,31 @@ class PlanConfig(models.Model):
             )
 
 # --------Asignaturas-------------------------------------------------------------------------
+
 class Subject(models.Model):
     name = models.CharField(max_length=100, verbose_name="Nombre")
+    # Si user es None → es pública (solo admins pueden crearlas)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Usuario dueño")
+    is_public = models.BooleanField(default=True, verbose_name="¿Es pública?")
+
+    class Meta:
+        unique_together = ('name', 'user')  # Evita duplicados para el mismo usuario
+
+    def first_topic(self):
+        return self.topic_set.first()
 
     def __str__(self):
-        return self.name
+        owner = "Pública" if self.is_public else f"de {self.user.username}"
+        return f"{self.name} ({owner})"
 
 # --------Temas: Muchos a Uno con Subject------------------------------------------------------
 class Topic(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Asignatura")
     name = models.CharField(max_length=100, verbose_name="Nombre")
     description = models.TextField(verbose_name="Descripción", blank=True, null=True)
+
+    class Meta:
+        unique_together = ('name', 'subject')
 
     def __str__(self):
         return f"{self.subject} - {self.name}"
