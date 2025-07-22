@@ -32,4 +32,6 @@ urlpatterns = [
     path('examen/eliminar/<int:exam_id>/', views.delete_exam, name='delete_exam'),
     path('perfil/editar/', views.edit_profile_view, name='edit_profile'),
     path('subject/delete/<int:subject_id>/', views.delete_subject, name='delete_subject'),
+    path('ajax/load-topics/', views.load_topics, name='ajax_load_topics'),
+    path('ajax/filter-exams/', views.filter_exams, name='filter_exams'),
 ]

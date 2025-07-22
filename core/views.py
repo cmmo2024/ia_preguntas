@@ -310,11 +310,33 @@ def index(request):
         'topic_filter': topic_filter
     })
     
-    
+"""   
 def load_topics(request):
     subject_id = request.GET.get('subject')
     topics = Topic.objects.filter(subject_id=subject_id).values('id', 'name')
     return JsonResponse({'topics': list(topics)})
+"""
+# views.py
+def load_topics(request):
+    subject_id = request.GET.get('subject')
+    subject_name = request.GET.get('subject_name')
+
+    if subject_id:
+        # Para index.html (usa IDs)
+        topics = Topic.objects.filter(subject_id=subject_id)
+    elif subject_name:
+        # Para profile.html (usa nombres)
+        try:
+            subject = Subject.objects.get(name=subject_name)
+            topics = Topic.objects.filter(subject=subject)
+        except Subject.DoesNotExist:
+            topics = Topic.objects.none()
+    else:
+        topics = Topic.objects.none()
+
+    return JsonResponse({
+        'topics': list(topics.values('id', 'name'))
+    })
 
 def about_view(request):
     support_email = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tutoria.com')
@@ -330,8 +352,23 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
 
 from .forms import UploadTopicsForm
-from .models import Subject, Topic
+from .models import Subject, Topic, Exam
 import chardet
+
+@login_required
+def filter_exams(request):
+    subject_filter = request.GET.get('subject')
+    topic_filter = request.GET.get('topic')
+
+    exams = Exam.objects.filter(user=request.user)
+
+    if subject_filter:
+        exams = exams.filter(subject_name=subject_filter)
+    if topic_filter:
+        exams = exams.filter(topic_name=topic_filter)
+
+    html = render_to_string('core/_exams_list.html', {'exams': exams}, request=request)
+    return JsonResponse({'html': html})
 
 def is_superuser(user):
     return user.is_superuser
@@ -577,14 +614,17 @@ from .models import UserProfile, Exam
 
 @login_required
 def profile_view(request):
-    # Obtener perfil del usuario
     profile = request.user.userprofile
-    profile.reset_period_if_needed()  # Reinicia cuota diaria si es nuevo día
+    profile.reset_period_if_needed()
 
-    # Obtener últimos exámenes (opcional)
+    # Obtener nombres únicos de asignaturas desde exámenes
+    exam_subject_names = Exam.objects.filter(user=request.user).values_list('subject_name', flat=True).distinct()
+    
+    # Obtener objetos Subject que coincidan
+    subjects = Subject.objects.filter(name__in=exam_subject_names).order_by('name')
+
     exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]
 
-    # Calcular estadísticas (solo si las muestras en la plantilla)
     total_exams = exams.count()
     correct_answers = sum(exam.correct_count for exam in exams)
     total_questions = sum(exam.total_questions for exam in exams)
@@ -593,6 +633,7 @@ def profile_view(request):
     context = {
         'profile': profile,
         'exams': exams,
+        'subjects': subjects,
         'total_exams': total_exams,
         'correct_answers': correct_answers,
         'total_questions': total_questions,

@@ -243,3 +243,31 @@ ul, ol {
     font-size: 0.9rem;
     background-color: #0d6efd;
 }
+
+/* Efecto hover en tarjetas */
+.card.hover-shadow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+
+/* Responsive: ajustar tamaño en móviles */
+@media (max-width: 576px) {
+    .card-title {
+        font-size: 1rem;
+    }
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.5em 0.7em;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Evitar que el nombre largo desborde */
+.card-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

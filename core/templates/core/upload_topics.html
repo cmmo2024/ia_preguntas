@@ -40,12 +40,12 @@
     
     <!-- 🔽 AQUÍ VA EL BLOQUE: ¿Hacer pública? -->
     {% if user.is_superuser %}
-        <div class="form-check mb-3">
-            <input type="checkbox" name="make_public" class="form-check-input" id="id_make_public">
-            <label class="form-check-label" for="id_make_public">
-                Hacer esta asignatura <strong>pública</strong> (visible para todos los usuarios)
-            </label>
-        </div>
+    <div class="form-check mb-3">
+        <input type="checkbox" name="make_public" class="form-check-input" id="id_make_public" style="border: 2px solid #0d6efd;">
+        <label class="form-check-label fw-bold text-primary" for="id_make_public">
+            <i class="bi bi-globe me-1"></i> Hacer esta asignatura <strong>pública</strong>
+        </label>
+    </div>
     {% endif %}
     <!-- 🔼 HASTA AQUÍ -->
 
@@ -72,61 +72,62 @@ Biología celular: Estudio de las células y sus funciones.
 
 <!-- Lista de asignaturas instaladas -->
 {% if subjects %}
-<hr class="my-4">
-<h5>Asignaturas disponibles</h5>
-<div class="row g-3" id="subject-list">
-    {% for subject in subjects %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow-sm h-100 border">
-            <div class="card-body d-flex flex-column">
-                <h6 class="card-title">{{ subject.name }}</h6>
-                <p class="card-text text-muted small mb-2">
-                    {% if subject.is_public %}
-                        <span class="badge bg-primary">Pública</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Privada</span>
-                    {% endif %}
-                    <br>
-                    <small>{{ subject.topic_set.count }} tema{{ subject.topic_set.count|pluralize:"s" }}</small>
-                </p>
-                <!-- Botón de eliminación condicional -->
-               <!-- Dentro del card-body -->
-                {% if not subject.is_public and subject.user == request.user %}
-                    <small class="text-muted">Tuya</small>
-                    <form method="post" class="d-inline"
-                        onsubmit="return confirm('¿Estás seguro de que quieres eliminar la asignatura \\u0022{{ subject.name|escapejs }}\\u0022? Esta acción no se puede deshacer.');">
-                        {% csrf_token %}
-                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                        <button type="submit" formaction="{% url 'delete_subject' subject.id %}"
-                                class="btn btn-sm btn-outline-danger"
-                                title="Eliminar asignatura">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </form>
+    <hr class="my-4">
+    <h5>Asignaturas disponibles</h5>
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3" id="subject-list">
+        {% for subject in subjects %}
+            <div class="col">
+                <div class="card h-100 border rounded shadow-sm hover-shadow">
+                    <div class="card-body d-flex flex-column p-3">
+                        <!-- Nombre y tipo -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title text-truncate mb-0 flex-grow-1" title="{{ subject.name }}">
+                                {{ subject.name }}
+                            </h6>
+                            <span class="
+                                badge 
+                                {% if subject.is_public %}bg-primary{% else %}bg-secondary{% endif %}
+                                ms-2
+                                {% if user.is_superuser and subject.is_public %}text-white fw-bold{% endif %}
+                            ">
+                                {% if subject.is_public %}Pública{% else %}Tuya{% endif %}
+                            </span>
+                        </div>
 
-                {% elif subject.is_public and request.user.is_superuser %}
-                    <small class="text-primary">Pública</small>
-                    <form method="post" class="d-inline"
-                        onsubmit="return confirm('¿Estás seguro de que quieres eliminar la asignatura \\u0022{{ subject.name|escapejs }}\\u0022? Esta acción no se puede deshacer.');">
-                        {% csrf_token %}
-                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                        <button type="submit" formaction="{% url 'delete_subject' subject.id %}"
-                                class="btn btn-sm btn-outline-danger"
-                                title="Eliminar asignatura">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </form>
+                        <!-- Detalles -->
+                        <small class="text-muted mb-3">
+                            <i class="bi bi-journal-text me-1"></i>
+                            {{ subject.topic_set.count }} tema{{ subject.topic_set.count|pluralize:"s" }}
+                        </small>
 
-                {% else %}
-                    <small class="text-muted">Solo lectura</small>
-                {% endif %}
+                        <!-- Acciones -->
+                        <div class="mt-auto pt-2 border-top">
+                            {% if not subject.is_public and subject.user == request.user or subject.is_public and request.user.is_superuser %}
+                                <form method="post" class="d-inline"
+                                      onsubmit="return confirm('¿Eliminar \'{{ subject.name|escapejs }}\'? Esta acción no se puede deshacer.');">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            formaction="{% url 'delete_subject' subject.id %}"
+                                            class="btn btn-sm btn-outline-danger px-2 py-1"
+                                            title="Eliminar asignatura">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <small class="text-muted">Solo lectura</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
 {% else %}
-<p class="text-muted mt-4">No hay asignaturas cargadas aún.</p>
+    <p class="text-muted mt-4 text-center">
+        <i class="bi bi-folder-plus me-1"></i>
+        Aún no has cargado ninguna asignatura.
+    </p>
 {% endif %}
 
 {% endblock %}
