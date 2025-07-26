@@ -23,9 +23,9 @@ urlpatterns = [
     path('pago/exito/', views.payment_success, name='payment_success'),
     path('pago/cancelado/', views.payment_cancelled, name='payment_cancelled'),
     path('accounts/', include('allauth.urls')),  # Rutas automáticas de allauth
-    # Opcional: sobrescribir algunas vistas
-    #path('accounts/login/', allauth_views.login, name="login"),
-    #path('accounts/logout/', allauth_views.logout, name="logout"),
+        # Opcional: sobrescribir algunas vistas
+        #path('accounts/login/', allauth_views.login, name="login"),
+        #path('accounts/logout/', allauth_views.logout, name="logout"),
     path('transfermovil/', views.transfermovil_view, name='transfermovil'),
     path('soporte/', views.faq_chatbot, name='faq_chatbot'),
     path('exam/<int:exam_id>/', views.exam_detail, name='exam_detail'),
