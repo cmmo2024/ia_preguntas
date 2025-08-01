@@ -363,9 +363,9 @@ def filter_exams(request):
     exams = Exam.objects.filter(user=request.user)
 
     if subject_filter:
-        exams = exams.filter(subject_name=subject_filter)
+        exams = exams.filter(subject_name__icontains=subject_filter)
     if topic_filter:
-        exams = exams.filter(topic_name=topic_filter)
+        exams = exams.filter(topic_name__icontains=topic_filter)
 
     html = render_to_string('core/_exams_list.html', {'exams': exams}, request=request)
     return JsonResponse({'html': html})
@@ -619,9 +619,18 @@ def profile_view(request):
 
     # Obtener nombres únicos de asignaturas desde exámenes
     exam_subject_names = Exam.objects.filter(user=request.user).values_list('subject_name', flat=True).distinct()
-    
     # Obtener objetos Subject que coincidan
-    subjects = Subject.objects.filter(name__in=exam_subject_names).order_by('name')
+    #subjects = Subject.objects.filter(name__in=exam_subject_names).order_by('name')
+    subjects = [
+    subject for subject in Subject.objects.all()
+    if any(subject.name.strip().lower() in exam_name.lower() for exam_name in exam_subject_names)
+    ]
+
+    subjects = sorted(subjects, key=lambda s: s.name)
+
+    print("exam_subject_names:", list(exam_subject_names))  # Asegura que se vea como lista
+    subject_details = [(subject.id, subject.name) for subject in subjects]
+    print("subjects (id, name):", subject_details)
 
     exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]
 
