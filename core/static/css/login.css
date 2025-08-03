@@ -1,0 +1,127 @@
+
+/* Login-specific mobile-like styling for desktop */
+
+/* Target the login page container specifically */
+.login-page .container {
+    max-width: 380px !important; /* Mobile-like width for login on desktop */
+    padding: 1rem;
+    margin: 0 auto;
+}
+
+/* Form elements styling for login page only */
+.login-page .form-control,
+.login-page input[type="text"],
+.login-page input[type="password"] {
+    padding: 0.5rem 0.75rem; /* Compact padding like mobile */
+    font-size: 0.9rem; /* Smaller font size like mobile */
+    border: 1px solid #ced4da; /* Standard bootstrap border */
+    height: 38px; /* Fixed smaller height */
+    border-radius: 0.375rem;
+}
+
+.login-page .form-label {
+    font-size: 0.9rem; /* Smaller labels like mobile */
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.login-page .mb-3 {
+    margin-bottom: 1rem !important; /* Compact spacing like mobile */
+}
+
+.login-page .btn {
+    padding: 0.5rem 1rem; /* Compact button padding like mobile */
+    font-size: 0.9rem;
+    height: 38px; /* Match input height */
+    border-radius: 0.375rem;
+}
+
+.login-page .btn-primary {
+    font-weight: 500; /* Medium weight for login */
+}
+
+/* Input group styling for password field */
+.login-page .input-group .form-control {
+    border-right: 1px solid #ced4da;
+    border-radius: 0.375rem 0 0 0.375rem;
+    height: 38px;
+}
+
+.login-page .input-group .btn-outline-secondary {
+    border-left: 1px solid #ced4da;
+    border-radius: 0 0.375rem 0.375rem 0;
+    padding: 0.5rem 0.75rem;
+    height: 38px;
+    border-color: #ced4da;
+}
+
+/* Social buttons styling */
+.login-page .btn-outline-danger,
+.login-page .btn-outline-primary {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    height: 38px;
+    border-radius: 0.375rem;
+}
+
+/* Form spacing adjustments */
+.login-page .mt-3,
+.login-page .mt-4 {
+    margin-top: 1rem !important;
+}
+
+.login-page .mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Title styling */
+.login-page h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* Paragraph styling */
+.login-page p {
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+/* Alert styling */
+.login-page .alert {
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+}
+
+/* Social login section */
+.login-page h6 {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.login-page .d-flex.flex-column.gap-2 {
+    gap: 0.5rem !important;
+}
+
+/* Ensure mobile-like appearance on all screen sizes */
+@media (min-width: 768px) {
+    .login-page .container {
+        max-width: 380px !important;
+    }
+}
+
+/* Make form even more compact on larger screens */
+@media (min-width: 1200px) {
+    .login-page .container {
+        max-width: 360px !important;
+    }
+}
+
+/* Small screens adjustments */
+@media (max-width: 576px) {
+    .login-page .container {
+        max-width: 100% !important;
+        padding: 0.75rem;
+    }
+}

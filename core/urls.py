@@ -4,7 +4,8 @@ from django.http import JsonResponse
 from allauth.account import views as allauth_views  # 👈 Esta es la parte nueva
 
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', views.landing, name='landing'),
+    path('app/', views.index, name='index'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),

@@ -52,9 +52,9 @@
         </button>
     </div>
 
-    <div class="d-flex gap-2">
-        <button type="submit" name="submit_question" class="btn btn-primary">Enviar Pregunta</button>
-        <button type="submit" name="generate_exam" value="1" class="btn btn-outline-success ms-2">Aplicar Examen</button>
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" name="submit_question" class="btn btn-primary flex-fill">Enviar Pregunta</button>
+        <button type="submit" name="generate_exam" value="1" class="btn btn-outline-success flex-fill">Aplicar Examen</button>
     </div>
 </form>
 
@@ -62,9 +62,9 @@
 <div class="card mb-4 rounded-3 border p-3 bg-light small">
     <h6 class="card-title text-muted mb-3">Filtrar historial de preguntas</h6>
     <form method="get" class="mb-0">
-        <div class="row g-3 align-items-end">
+        <div class="row g-2 g-md-3 align-items-end">
             <!-- Filtro por asignatura -->
-            <div class="col-md-5 col-12">
+            <div class="col-12 col-sm-6 col-lg-5">
                 <label for="filter-subject" class="form-label small">Asignatura</label>
                 <select id="filter-subject" name="subject" class="form-select form-select-sm">
                     <option value="">Todas las asignaturas</option>
@@ -77,7 +77,7 @@
             </div>
 
             <!-- Filtro por tema -->
-            <div class="col-md-5 col-12">
+            <div class="col-12 col-sm-6 col-lg-5">
                 <label for="filter-topic" class="form-label small">Tema</label>
                 <select id="filter-topic" name="topic" class="form-select form-select-sm">
                     <option value="">Todos los temas</option>
@@ -90,7 +90,7 @@
             </div>
 
             <!-- Botón limpiar -->
-            <div class="col-md-2 col-12 text-md-end mt-md-0 mt-2">
+            <div class="col-12 col-lg-2 mt-2 mt-lg-0">
                 <a href="{% url 'index' %}" class="btn btn-outline-secondary btn-sm w-100">Limpiar</a>
             </div>
         </div>

@@ -14,7 +14,10 @@
     <div class="container">
 
         <!-- Logo / Nombre de la app -->
-        <a class="navbar-brand h1" href="/">Tutor-IA</a>
+        <a class="navbar-brand fw-bold" href="{% url 'landing' %}">
+                    <i class="bi bi-chat-dots text-primary me-2"></i>
+                    Tutor-IA
+                </a>
 
         <!-- Botón hamburguesa -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -25,7 +28,7 @@
         <!-- Barra de navegación -->
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav">
-            
+
                 {% if user.is_authenticated %}
 
                     <!-- Avatar con nombre de usuario -->
@@ -56,7 +59,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'help' %}">Ayuda</a>
                     </li>
-                    
+
                     <!-- Separador -->
                     <li class="nav-item dropdown-divider"></li>
                     <li class="custom-divider"></li> <!-- Separador personalizado -->

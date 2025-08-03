@@ -23,7 +23,7 @@ def logout_view(request):
     return redirect('login')
 
 from django.contrib.auth import login, authenticate
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import RegisterForm
 from .models import UserProfile
@@ -42,7 +42,7 @@ def register_view(request):
             if User.objects.filter(username=username).exists():
                 messages.error(request, "El nombre de usuario ya está en uso.")
                 return render(request, 'core/register.html', {'form': form})
-            
+
             # Crear usuario
             user = User.objects.create_user(
                 username=username,
@@ -92,10 +92,10 @@ def login_view(request):
 # Index----Vista de Tutor-IA-------------------------------------------------
 @login_required
 def index(request):
-    
+
     profile = request.user.userprofile
     profile.reset_period_if_needed()
-    
+
     # Cargar valores de filtro desde URL (?subject=X&topic=Y)
     subject_filter = request.GET.get('subject')
     topic_filter = request.GET.get('topic')
@@ -106,7 +106,7 @@ def index(request):
     # Aplicamos filtros si existen
     if subject_filter:
         conversations = conversations.filter(topic__subject_id=subject_filter)
-    
+
     if topic_filter:
         conversations = conversations.filter(topic_id=topic_filter)
 
@@ -136,7 +136,7 @@ def index(request):
             selected_topic = form.cleaned_data['topic']
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
-            
+
             # Validar acceso al tema según plan
             if request.user.is_authenticated and request.user.userprofile.plan == 'free':
                 first_topic = selected_subject.first_topic()
@@ -159,18 +159,18 @@ def index(request):
                     Eres un profesor virtual. Genera 15 preguntas de opción múltiple sobre '{selected_topic.name}' 
                     de la asignatura '{selected_subject}'.
                     Contexto: {selected_topic.description or ''}
-                    
+
                     Cada pregunta debe tener 4 opciones (a, b, c, d) y señalar cuál es la correcta.
-                    
+
                     Ejemplo:
-                    
+
                     PREGUNTA 1: ¿Cuánto es 2 + 2?
                     a) 3
                     b) 5
                     c) 4
                     d) 0
                     Correcta: c
-                    
+
                     ... (repetir para 7 preguntas)
                     Importante: No hagas comentarios, solo responde con el formato del ejemplo dado
                     """
@@ -191,10 +191,10 @@ def index(request):
 
                     if response.status_code != 200:
                         raise Exception(f"Error de API: {response.status_code} - {response.text}")
-                    
+
                     profile.increment_request() # Incrementar numero de request para plan
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-                    
+
                     questions = parse_exam(ai_response)
                     request.session['exam_questions'] = questions
                     request.session['exam_subject'] = str(selected_subject)
@@ -309,7 +309,7 @@ def index(request):
         'subject_filter': subject_filter,
         'topic_filter': topic_filter
     })
-    
+
 """   
 def load_topics(request):
     subject_id = request.GET.get('subject')
@@ -487,7 +487,7 @@ from django.http import HttpResponse
 
 @login_required
 def exam_view(request):
-   
+
     questions = request.session.get('exam_questions', [])
     topic_name = request.session.get('exam_topic', 'Tema')
     subject_name = request.session.get('exam_subject', 'Asignatura')
@@ -510,7 +510,7 @@ def parse_exam(text):
         raise ValueError("parse_exam() requiere un texto (str), no una lista u otro tipo")
     text = re.sub(r'\r', '', text)
     lines = [line.strip() for line in text.split('\n') if line.strip()]
-    
+
     questions = []
     current_question = None
 
@@ -606,7 +606,7 @@ def submit_exam(request):
         })
     else:
         return redirect('index')
-    
+
 # Perfil de usuario----------------------------------------------------------------------
 from .models import UserProfile, Conversation
 from django.shortcuts import render
@@ -687,7 +687,7 @@ def create_payment(request):
         return redirect('profile')
 
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-    
+
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -712,7 +712,7 @@ def create_payment(request):
     except Exception as e:
         messages.error(request, f"Error al procesar el pago: {str(e)}")
         return redirect('profile')
-    
+
     # Pago exitoso--------------------------------------------------------------------
 @login_required
 def payment_success(request):
@@ -779,7 +779,7 @@ def transfermovil_view(request):
         'amount_required': amount_required
     }
     return render(request, 'core/transfermovil.html', context)
-   
+
 
 # Chatbot sin IA ---------------------------------------------------
 from django.http import JsonResponse
@@ -791,7 +791,7 @@ def faq_chatbot(request):
         try:
             data = json.loads(request.body)
             question = data.get('question', '').strip().lower()
-            
+
             # Función para quitar acentos y normalizar texto
             def normalize(text):
                 return ''.join(
@@ -830,7 +830,7 @@ def faq_chatbot(request):
 
             answer = "Lo siento, no tengo una respuesta para esa pregunta aún. Contáctanos por correo."
 
-            for key in responses:
+            for key in responses:                
                 if normalized_question in normalize(key):
                     answer = responses[key]
                     break
@@ -840,7 +840,7 @@ def faq_chatbot(request):
             return JsonResponse({'answer': '⚠️ Error al procesar tu pregunta.'})
     else:
         return JsonResponse({'answer': '⚠️ Solo acepto preguntas POST.'})
-    
+
 # Editar Perfil de Usuariofrom django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -897,3 +897,7 @@ def edit_profile_view(request):
             'profile': profile,
             'categories': ProfessionalCategory.choices
         })
+
+def landing(request):
+    """Landing page for medical students"""
+    return render(request, 'core/landing.html')

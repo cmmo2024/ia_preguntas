@@ -1,7 +1,12 @@
 <!-- templates/core/login.html -->
 {% extends "base.html" %}
-{% load widget_tweaks socialaccount %} <!-- Asegúrate de tener ambas cargadas -->
+{% load widget_tweaks socialaccount static %} <!-- Asegúrate de tener ambas cargadas -->
+
 {% block content %}
+<!-- Load login-specific CSS -->
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
+
+<div class="login-page">
 <h3>Iniciar sesión</h3>
 
 {% if messages %}
@@ -90,4 +95,5 @@ function mostrarMensaje(event) {
     alert("⏳ Esta funcionalidad está pendiente. Pronto disponible.");
 }
 </script>
+</div>
 {% endblock %}
