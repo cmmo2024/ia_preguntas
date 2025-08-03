@@ -55,36 +55,46 @@
                 <span>{{ user.userprofile.get_category_display|default:"No definida" }}</span>
             </li>
             {% with config=profile.plan_config %}
-            <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><strong>Peticiones a la IA:</strong></span>
-                    <span>
-                        {% if profile.plan == 'free' %}
-                            {{ profile.daily_requests }} / {{ config.daily_requests }}
-                        {% else %}
-                            {{ profile.total_requests }} / {{ config.total_requests }}
-                        </span>
-                    {% endif %}
-                </div>
-
-                <!-- Barra de progreso -->
-                <div class="progress mt-1" style="height: 20px;">
-                    <div class="progress-bar" role="progressbar"
-                        style="
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><strong>Peticiones a la IA:</strong></span>
+                        <span>
                             {% if profile.plan == 'free' %}
-                                width: {{ profile.daily_requests|div:config.daily_requests|mul:100 }}%;
+                                {% if profile.daily_requests >= config.daily_requests %}
+                                    <span class="text-danger">⚠️ Límite alcanzado</span>
+                                {% else %}
+                                    {{ profile.daily_requests }} / {{ config.daily_requests }}
+                                {% endif %}
                             {% else %}
-                                width: {{ profile.total_requests|div:config.total_requests|mul:100 }}%;
-                            {% endif %}">
-                        {% if profile.plan == 'free' %}
-                            {{ profile.daily_requests|div:config.daily_requests|mul:100|floatformat:"0" }}%
-                        {% else %}
-                            {{ profile.total_requests|div:config.total_requests|mul:100|floatformat:"0" }}%
-                        {% endif %}
+                                {{ profile.total_requests }} / {{ config.total_requests }}
+                            {% endif %}
+                        </span>
                     </div>
-                </div>
-            </li>  
-            {% endwith %}  
+
+                    {% if profile.plan == 'free' and profile.daily_requests < config.daily_requests %}
+                        <!-- Barra de progreso para plan free -->
+                        <div class="progress mt-1" style="height: 20px;">
+                            <div class="progress-bar" role="progressbar"
+                                style="width: {{ profile.daily_requests|div:config.daily_requests|mul:100 }}%;">
+                                {{ profile.daily_requests|div:config.daily_requests|mul:100|floatformat:"0" }}%
+                            </div>
+                        </div>
+                    {% elif profile.plan == 'free' and profile.daily_requests >= config.daily_requests %}
+                        <div class="alert alert-warning mt-2 mb-0 small" role="alert">
+                            Has alcanzado el límite de 3 peticiones diarias.  
+                            <strong>Se reiniciará en 24 horas</strong> desde tu última pregunta.  
+                        </div>
+                    {% else %}
+                        <!-- Barra de progreso para plan premium -->
+                        <div class="progress mt-1" style="height: 20px;">
+                            <div class="progress-bar" role="progressbar"
+                                style="width: {{ profile.total_requests|div:config.total_requests|mul:100 }}%;">
+                                {{ profile.total_requests|div:config.total_requests|mul:100|floatformat:"0" }}%
+                            </div>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endwith %}
                 
         </ul>
 
@@ -118,28 +128,94 @@
     </ul>
 </li>
 <p> </p>
-<li class="list-group-item"><li class="list-group-item">
-    <h3>Historial de exámenes:</h3>
-    <ul class="mt-3 list-unstyled">
-        {% if exams %}
-            {% for exam in exams %}
-                <li class="d-flex justify-content-between align-items-center">
-                    <a href="{% url 'exam_detail' exam.id %}" class="text-decoration-none">
-                        {{ exam.topic_name }} ({{ exam.correct_count }}/{{ exam.total_questions }})
-                    </a>
-                    <form action="{% url 'delete_exam' exam.id %}" method="post" class="mb-0">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar examen"
-                                onclick="return confirm('¿Estás seguro de que quieres eliminar este examen?')">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </form>
-                </li>
-            {% endfor %}
-        {% else %}
-            <small>No has realizado exámenes aún.</small>
-        {% endif %}
+<li class="list-group-item">
+    <!-- Título y filtros -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h3 class="mb-0">Historial de exámenes</h3>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-3 p-3 bg-light border rounded small">
+        <form id="exam-filter-form" class="row g-3">
+            <!-- Filtro por asignatura -->
+            <div class="col-md-5 col-12">
+                <label for="filter-subject" class="form-label small mb-1">Asignatura</label>
+                <select id="filter-subject" class="form-select form-select-sm">
+                    <option value="">Todas las asignaturas</option>
+                    {% for subject in subjects %}
+                        <option value="{{ subject.name }}">{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtro por tema -->
+            <div class="col-md-5 col-12">
+                <label for="filter-topic" class="form-label small mb-1">Tema</label>
+                <select id="filter-topic" class="form-select form-select-sm">
+                    <option value="">Todos los temas</option>
+                </select>
+            </div>
+
+            <!-- Botón limpiar -->
+            <div class="col-md-2 col-12 d-flex align-items-end">
+                <button type="button" id="clear-filters" class="btn btn-outline-secondary btn-sm w-100">Limpiar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de exámenes -->
+    <ul id="exam-list" class="mt-3 list-unstyled">
+        {% include "core/_exams_list.html" %}
     </ul>
 </li>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js "></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const subjectSelect = document.getElementById('filter-subject');
+    const topicSelect = document.getElementById('filter-topic');
+
+    // Cargar temas según asignatura seleccionada (por nombre)
+    subjectSelect.addEventListener('change', function () {
+        const subjectName = this.value;
+        topicSelect.innerHTML = '<option value="">Todos los temas</option>';
+
+        if (!subjectName) {
+            filterExams();
+            return;
+        }
+
+        $.get("{% url 'ajax_load_topics' %}", { subject_name: subjectName }, function(data) {
+            data.topics.forEach(function(topic) {
+                const option = document.createElement('option');
+                option.value = topic.name;
+                option.textContent = topic.name;
+                topicSelect.appendChild(option);
+            });
+            filterExams();
+        });
+    });
+
+    // Aplicar filtro al cambiar tema
+    topicSelect.addEventListener('change', filterExams);
+
+    // Botón limpiar
+    document.getElementById('clear-filters').addEventListener('click', function () {
+        subjectSelect.value = '';
+        topicSelect.innerHTML = '<option value="">Todos los temas</option>';
+        filterExams();
+    });
+
+    // Función para filtrar exámenes vía AJAX
+    function filterExams() {
+        const subject = subjectSelect.value;
+        const topic = topicSelect.value;
+
+        $.get("{% url 'filter_exams' %}", { subject: subject, topic: topic }, function(data) {
+            document.getElementById('exam-list').innerHTML = data.html;
+        });
+    }
+});
+</script>
 
 {% endblock %}

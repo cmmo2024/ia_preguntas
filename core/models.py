@@ -4,7 +4,56 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import timedelta
 from django.utils import timezone
-import jsonfield
+#import jsonfield
+
+ # --------Planes-------------------------------------------------------------------------
+from django.core.validators import MinValueValidator
+
+class PlanConfig(models.Model):
+    plan = models.CharField(
+        max_length=10,
+        choices=[
+            ('free', 'Gratis'),
+            ('premium', 'Premium')
+        ],
+        unique=True
+    )
+    daily_requests = models.PositiveIntegerField(
+        default=3,
+        verbose_name="Peticiones diarias (Free)"
+    )
+    total_requests = models.PositiveIntegerField(
+        default=300,
+        verbose_name="Peticiones totales (Premium)"
+    )
+    price_cup = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=500.00,
+        verbose_name="Precio del plan Premium (CUP)"
+    )
+    duration_days = models.PositiveIntegerField(
+        default=30,
+        verbose_name="Duración del plan (días)"
+    )
+
+    def __str__(self):
+        return f"Configuración de plan: {self.get_plan_display()}"
+
+    @classmethod
+    def get_config(cls, plan_name):
+        """Devuelve la configuración del plan o valores por defecto"""
+        try:
+            return cls.objects.get(plan=plan_name)
+        except cls.DoesNotExist:
+            # Valores por defecto
+            return cls(
+                plan=plan_name,
+                daily_requests=3 if plan_name == 'free' else 0,
+                total_requests=300 if plan_name == 'premium' else 0,
+                price_cup=500.00 if plan_name == 'premium' else 0.00,
+                duration_days=30
+            )
 
 # UCategoria Profexional---Para el perfil de usuario-----------------------------
 class ProfessionalCategory(models.TextChoices):
@@ -96,67 +145,32 @@ class UserProfile(models.Model):
                 'price_cup': 500.00 if self.plan == 'premium' else 0.00
             })
 
- # --------Planes-------------------------------------------------------------------------
-from django.core.validators import MinValueValidator
-
-class PlanConfig(models.Model):
-    plan = models.CharField(
-        max_length=10,
-        choices=[
-            ('free', 'Gratis'),
-            ('premium', 'Premium')
-        ],
-        unique=True
-    )
-    daily_requests = models.PositiveIntegerField(
-        default=3,
-        verbose_name="Peticiones diarias (Free)"
-    )
-    total_requests = models.PositiveIntegerField(
-        default=300,
-        verbose_name="Peticiones totales (Premium)"
-    )
-    price_cup = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=500.00,
-        verbose_name="Precio del plan Premium (CUP)"
-    )
-    duration_days = models.PositiveIntegerField(
-        default=30,
-        verbose_name="Duración del plan (días)"
-    )
-
-    def __str__(self):
-        return f"Configuración de plan: {self.get_plan_display()}"
-
-    @classmethod
-    def get_config(cls, plan_name):
-        """Devuelve la configuración del plan o valores por defecto"""
-        try:
-            return cls.objects.get(plan=plan_name)
-        except cls.DoesNotExist:
-            # Valores por defecto
-            return cls(
-                plan=plan_name,
-                daily_requests=3 if plan_name == 'free' else 0,
-                total_requests=300 if plan_name == 'premium' else 0,
-                price_cup=500.00 if plan_name == 'premium' else 0.00,
-                duration_days=30
-            )
-
 # --------Asignaturas-------------------------------------------------------------------------
+
 class Subject(models.Model):
     name = models.CharField(max_length=100, verbose_name="Nombre")
+    # Si user es None → es pública (solo admins pueden crearlas)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Usuario dueño")
+    is_public = models.BooleanField(default=True, verbose_name="¿Es pública?")
+
+    class Meta:
+        unique_together = ('name', 'user')  # Evita duplicados para el mismo usuario
+
+    def first_topic(self):
+        return self.topic_set.first()
 
     def __str__(self):
-        return self.name
+        owner = "Pública" if self.is_public else f"de {self.user.username}"
+        return f"{self.name} ({owner})"
 
 # --------Temas: Muchos a Uno con Subject------------------------------------------------------
 class Topic(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Asignatura")
     name = models.CharField(max_length=100, verbose_name="Nombre")
     description = models.TextField(verbose_name="Descripción", blank=True, null=True)
+
+    class Meta:
+        unique_together = ('name', 'subject')
 
     def __str__(self):
         return f"{self.subject} - {self.name}"
@@ -178,8 +192,8 @@ class Exam(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     subject_name = models.CharField(max_length=255)
     topic_name = models.CharField(max_length=255)
-    questions = jsonfield.JSONField()  # Almacena las preguntas y opciones
-    user_answers = jsonfield.JSONField()  # Almacena qué respondió el usuario
+    questions = models.JSONField()  # Almacena las preguntas y opciones
+    user_answers = models.JSONField()  # Almacena qué respondió el usuario
     correct_count = models.PositiveIntegerField(default=0)
     total_questions = models.PositiveIntegerField(default=7)
     created_at = models.DateTimeField(auto_now_add=True)

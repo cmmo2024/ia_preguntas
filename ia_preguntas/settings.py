@@ -147,9 +147,12 @@ SOCIALACCOUNT_LOGIN_ERROR_URL = '/login/'
 
 # Opcional: Evita crear automáticamente usuarios inactivos
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+# django-allauth settings (actualizados)
+ACCOUNT_LOGIN_METHODS = ['username', 'email']  # permite iniciar sesión con username o email
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+#ACCOUNT_EMAIL_REQUIRED = True
+#ACCOUNT_USERNAME_REQUIRED = True
+#ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {

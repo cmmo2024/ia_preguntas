@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor-IA - Tu Asistente de Estudio Médico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+</head>
+<body>
+    <!-- Hero Section with Background Image -->
+    <section class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="container h-100">
+            <div class="row h-100 align-items-center">
+                <div class="col-lg-8 mx-auto text-center text-white">
+                    <h1 class="display-3 fw-bold mb-4 animate-fade-in">
+                        <i class="bi bi-heart-pulse text-primary me-3"></i>
+                        Tutor-IA
+                    </h1>
+                    <p class="lead mb-5 animate-fade-in-delay">
+                        Tu asistente inteligente para el estudio de medicina. 
+                        Aprende, practica y domina conceptos médicos con la ayuda de inteligencia artificial.
+                    </p>
+                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3 animate-fade-in-delay-2">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'index' %}" class="btn btn-primary btn-lg px-5 py-3">
+                                <i class="bi bi-chat-dots me-2"></i>
+                                Comenzar a Estudiar
+                            </a>
+                        {% else %}
+                            <a href="{% url 'register' %}" class="btn btn-primary btn-lg px-5 py-3">
+                                <i class="bi bi-person-plus me-2"></i>
+                                Únete Gratis
+                            </a>
+                            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>
+                                Iniciar Sesión
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scroll Down Arrow -->
+        <div class="scroll-down">
+            <i class="bi bi-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section py-5">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col-lg-8 mx-auto">
+                    <h2 class="display-5 fw-bold mb-3">¿Por qué elegir Tutor-IA?</h2>
+                    <p class="lead text-muted">Diseñado específicamente para estudiantes de medicina y profesionales de la salud</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card text-center p-4 h-100">
+                        <div class="feature-icon mb-3">
+                            <i class="bi bi-book-half text-primary"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Estudio Inteligente</h4>
+                        <p class="text-muted">Haz preguntas específicas sobre anatomía, fisiología, patología y más. La IA te proporciona respuestas precisas y detalladas.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card text-center p-4 h-100">
+                        <div class="feature-icon mb-3">
+                            <i class="bi bi-clipboard-check text-success"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Exámenes Personalizados</h4>
+                        <p class="text-muted">Genera exámenes tipo test adaptados a tu nivel de estudio. Practica y evalúa tu conocimiento constantemente.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card text-center p-4 h-100">
+                        <div class="feature-icon mb-3">
+                            <i class="bi bi-graph-up text-warning"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Seguimiento de Progreso</h4>
+                        <p class="text-muted">Mantén un historial de tus consultas y exámenes. Observa tu evolución y identifica áreas de mejora.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-5 fw-bold mb-3">¿Listo para revolucionar tu estudio?</h2>
+                    <p class="lead mb-4">Miles de estudiantes ya confían en Tutor-IA para mejorar su rendimiento académico.</p>
+                    {% if not user.is_authenticated %}
+                        <a href="{% url 'register' %}" class="btn btn-primary btn-lg px-5 py-3">
+                            <i class="bi bi-rocket-takeoff me-2"></i>
+                            Comenzar Ahora - Es Gratis
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2024 Tutor-IA. Todos los derechos reservados.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="{% url 'about' %}" class="text-white text-decoration-none me-3">Acerca de</a>
+                    <a href="{% url 'help' %}" class="text-white text-decoration-none">Ayuda</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Smooth scroll for the down arrow
+        document.querySelector('.scroll-down').addEventListener('click', function() {
+            document.querySelector('.features-section').scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    </script>
+</body>
+</html>

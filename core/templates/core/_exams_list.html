@@ -1,0 +1,21 @@
+<!-- templates/core/_exams_list.html -->
+{% for exam in exams %}
+<li class="d-flex justify-content-between align-items-center mb-2">
+    <a href="{% url 'exam_detail' exam.id %}" class="text-decoration-none text-dark">
+        {{ exam.topic_name }} 
+        <span class="text-muted small">({{ exam.subject_name }})</span>
+        <br>
+        <small class="text-success">{{ exam.correct_count }}/{{ exam.total_questions }} correctas</small>
+    </a>
+    <form action="{% url 'delete_exam' exam.id %}" method="post" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger"
+                title="Eliminar examen"
+                onclick="return confirm('¿Eliminar este examen?')">
+            <i class="bi bi-trash"></i>
+        </button>
+    </form>
+</li>
+{% empty %}
+<small class="text-muted">No hay exámenes que coincidan.</small>
+{% endfor %}

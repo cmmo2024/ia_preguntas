@@ -466,4 +466,121 @@ ul, ol {
 
 .alert.alert-success {
 
+<<<<<<< HEAD
     background-colo...
+=======
+.alert.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.alert.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeeba;
+}
+
+.alert.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-color: #bee5eb;
+}
+
+/* === Chatbot simple === */
+#chatbot-form input[type="text"] {
+    font-size: 0.9rem;
+}
+
+#chat-response .alert {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+/* Respuestas de examenes */
+.correct {
+    color: green;
+}
+.incorrect {
+    color: red;
+}
+.card-body ul li {
+    margin-bottom: 0.5rem;
+}
+
+.progress {
+    width: 100%;
+    max-width: 100%;
+    height: 20px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    min-width: 20px; /* Evita que desaparezca en 0% */
+}
+
+/* Nuevos estilos para base.html  */
+/* Ajuste del navbar en escritorio */
+.navbar-nav .nav-link {
+    padding: 0.5rem 1rem;
+}
+
+.navbar-nav .nav-item {
+    margin-left: 0.5rem;
+}
+
+/* Ajuste en escritorio para mejor distribución */
+@media (min-width: 992px) {
+    .navbar-nav {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+}
+
+/* Estilo para el avatar y badge */
+.badge.rounded-circle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    background-color: #0d6efd;
+}
+
+/* Efecto hover en tarjetas */
+.card.hover-shadow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+
+/* Responsive: ajustar tamaño en móviles */
+@media (max-width: 576px) {
+    .card-title {
+        font-size: 1rem;
+    }
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.5em 0.7em;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Evitar que el nombre largo desborde */
+.card-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+>>>>>>> 959528916b2e6815334547bad415bac54b1aa6cf

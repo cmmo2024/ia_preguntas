@@ -1,11 +1,10 @@
 <!-- templates/core/upload_topics.html -->
-
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Cargar temas desde archivo</h2>
+<h2>Cargar o gestionar asignaturas</h2>
 
-<!-- Mensaje de éxito/error -->
+<!-- Mensajes de éxito/error -->
 {% if messages %}
 <div class="container mt-3">
     {% for message in messages %}
@@ -13,15 +12,15 @@
          role="alert" style="margin-bottom: 1rem;">
         <div class="d-flex align-items-center">
             {% if message.tags == "success" %}
-            <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.2rem;"></i>
-            {% elif message.tags == "error" or message.tags == "danger" %}
-            <i class="bi bi-exclamation-octagon-fill text-danger me-2" style="font-size: 1.2rem;"></i>
+                <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.2rem;"></i>
+            {% elif message.tags in "error,danger" %}
+                <i class="bi bi-exclamation-octagon-fill text-danger me-2" style="font-size: 1.2rem;"></i>
             {% elif message.tags == "warning" %}
-            <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.2rem;"></i>
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.2rem;"></i>
             {% else %}
-            <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+                <i class="bi bi-info-circle-fill text-primary me-2" style="font-size: 1.2rem;"></i>
             {% endif %}
-        <span>{{ message }}</span>
+            <span>{{ message }}</span>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
@@ -29,23 +28,106 @@
 </div>
 {% endif %}
 
+<!-- Formulario de carga -->
 <form method="post" enctype="multipart/form-data" class="mb-4">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Subir temas</button>
+    <!--{{ form.as_p }}-->
+    <div>
+        {{ form.file.label }}<br>
+        {{ form.file }}<br>
+        <small>{{ form.file.help_text }}</small>
+    </div>
+    
+    <!-- 🔽 AQUÍ VA EL BLOQUE: ¿Hacer pública? -->
+    {% if user.is_superuser %}
+    <div class="form-check mb-3">
+        <input type="checkbox" name="make_public" class="form-check-input" id="id_make_public" style="border: 2px solid #0d6efd;">
+        <label class="form-check-label fw-bold text-primary" for="id_make_public">
+            <i class="bi bi-globe me-1"></i> Hacer esta asignatura <strong>pública</strong>
+        </label>
+    </div>
+    {% endif %}
+    <!-- 🔼 HASTA AQUÍ -->
+
+    <button type="submit" class="btn btn-success">
+        <i class="bi bi-upload me-1"></i> Subir temas
+    </button>
 </form>
 
-<a href="{% url 'index' %}" class="btn btn-success mt-3">Volver al inicio</a>
-
-<p class="mt-4"><strong>Importante:</strong> El nombre del archivo será el nombre de la asignatura.</p>
-
-<p><strong>Ejemplo:</strong> Si subes un archivo llamado <code>matematicas.txt</code>, se creará la asignatura “Matematicas”.</p>
-
-<p><strong>Formato esperado:</strong></p>
-<pre>
-Álgebra: Una rama de las matemáticas que usa símbolos y reglas para resolver problemas.
-Cálculo: Estudio de cambios continuos, incluye derivadas e integrales.
+<!-- Instrucciones -->
+<div class="mt-4 border rounded p-3 bg-light">
+    <p><strong>Importante:</strong> El nombre del archivo será el nombre de la asignatura.</p>
+    <p><strong>Ejemplo:</strong> Si subes un archivo llamado <code>matematicas.txt</code>, se creará la asignatura “Matemáticas”.</p>
+    <p><strong>Formato esperado:</strong></p>
+    <pre class="bg-white p-3 rounded border mb-0">
+Álgebra: Una rama de las matemáticas.
+Cálculo: Estudio de derivadas e integrales.
 Biología celular: Estudio de las células y sus funciones.
-</pre>
+    </pre>
+</div>
+<!-- Botón volver -->
+<a href="{% url 'index' %}" class="btn btn-outline-secondary mb-4">
+    <i class="bi bi-arrow-left me-1"></i> Volver al inicio
+</a>
+
+<!-- Lista de asignaturas instaladas -->
+{% if subjects %}
+    <hr class="my-4">
+    <h5>Asignaturas disponibles</h5>
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3" id="subject-list">
+        {% for subject in subjects %}
+            <div class="col">
+                <div class="card h-100 border rounded shadow-sm hover-shadow">
+                    <div class="card-body d-flex flex-column p-3">
+                        <!-- Nombre y tipo -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title text-truncate mb-0 flex-grow-1" title="{{ subject.name }}">
+                                {{ subject.name }}
+                            </h6>
+                            <span class="
+                                badge 
+                                {% if subject.is_public %}bg-primary{% else %}bg-secondary{% endif %}
+                                ms-2
+                                {% if user.is_superuser and subject.is_public %}text-white fw-bold{% endif %}
+                            ">
+                                {% if subject.is_public %}Pública{% else %}Tuya{% endif %}
+                            </span>
+                        </div>
+
+                        <!-- Detalles -->
+                        <small class="text-muted mb-3">
+                            <i class="bi bi-journal-text me-1"></i>
+                            {{ subject.topic_set.count }} tema{{ subject.topic_set.count|pluralize:"s" }}
+                        </small>
+
+                        <!-- Acciones -->
+                        <div class="mt-auto pt-2 border-top">
+                            {% if not subject.is_public and subject.user == request.user or subject.is_public and request.user.is_superuser %}
+                                <form method="post" class="d-inline"
+                                      onsubmit="return confirm('¿Eliminar \'{{ subject.name|escapejs }}\'? Esta acción no se puede deshacer.');">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            formaction="{% url 'delete_subject' subject.id %}"
+                                            class="btn btn-sm btn-outline-danger px-2 py-1"
+                                            title="Eliminar asignatura">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <small class="text-muted">Solo lectura</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="text-muted mt-4 text-center">
+        <i class="bi bi-folder-plus me-1"></i>
+        Aún no has cargado ninguna asignatura.
+    </p>
+{% endif %}
 
 {% endblock %}

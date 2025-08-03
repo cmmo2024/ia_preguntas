@@ -1,6 +1,7 @@
 import os
 import requests
 from django.shortcuts import render, redirect
+from django.db.models import Q, Count
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -22,7 +23,7 @@ def logout_view(request):
     return redirect('login')
 
 from django.contrib.auth import login, authenticate
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import RegisterForm
 from .models import UserProfile
@@ -41,7 +42,7 @@ def register_view(request):
             if User.objects.filter(username=username).exists():
                 messages.error(request, "El nombre de usuario ya está en uso.")
                 return render(request, 'core/register.html', {'form': form})
-            
+
             # Crear usuario
             user = User.objects.create_user(
                 username=username,
@@ -91,10 +92,10 @@ def login_view(request):
 # Index----Vista de Tutor-IA-------------------------------------------------
 @login_required
 def index(request):
-    
+
     profile = request.user.userprofile
     profile.reset_period_if_needed()
-    
+
     # Cargar valores de filtro desde URL (?subject=X&topic=Y)
     subject_filter = request.GET.get('subject')
     topic_filter = request.GET.get('topic')
@@ -105,7 +106,7 @@ def index(request):
     # Aplicamos filtros si existen
     if subject_filter:
         conversations = conversations.filter(topic__subject_id=subject_filter)
-    
+
     if topic_filter:
         conversations = conversations.filter(topic_id=topic_filter)
 
@@ -136,6 +137,16 @@ def index(request):
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
 
+            # Validar acceso al tema según plan
+            if request.user.is_authenticated and request.user.userprofile.plan == 'free':
+                first_topic = selected_subject.first_topic()
+                if first_topic and selected_topic.id != first_topic.id:
+                    messages.warning(
+                        request, 
+                        f"Tu plan Gratuito solo puedes hacer preguntas al primer tema de cada asignatura: '{first_topic.name}'"
+                    )
+                    return redirect('profile')
+
             # Guardar en sesión para mantener selección
             request.session['subject_id'] = selected_subject.id
             request.session['topic_id'] = selected_topic.id
@@ -148,18 +159,18 @@ def index(request):
                     Eres un profesor virtual. Genera 15 preguntas de opción múltiple sobre '{selected_topic.name}' 
                     de la asignatura '{selected_subject}'.
                     Contexto: {selected_topic.description or ''}
-                    
+
                     Cada pregunta debe tener 4 opciones (a, b, c, d) y señalar cuál es la correcta.
-                    
+
                     Ejemplo:
-                    
+
                     PREGUNTA 1: ¿Cuánto es 2 + 2?
                     a) 3
                     b) 5
                     c) 4
                     d) 0
                     Correcta: c
-                    
+
                     ... (repetir para 7 preguntas)
                     Importante: No hagas comentarios, solo responde con el formato del ejemplo dado
                     """
@@ -180,10 +191,10 @@ def index(request):
 
                     if response.status_code != 200:
                         raise Exception(f"Error de API: {response.status_code} - {response.text}")
-                    
+
                     profile.increment_request() # Incrementar numero de request para plan
                     ai_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-                    
+
                     questions = parse_exam(ai_response)
                     request.session['exam_questions'] = questions
                     request.session['exam_subject'] = str(selected_subject)
@@ -298,12 +309,34 @@ def index(request):
         'subject_filter': subject_filter,
         'topic_filter': topic_filter
     })
-    
-    
+
+"""   
 def load_topics(request):
     subject_id = request.GET.get('subject')
     topics = Topic.objects.filter(subject_id=subject_id).values('id', 'name')
     return JsonResponse({'topics': list(topics)})
+"""
+# views.py
+def load_topics(request):
+    subject_id = request.GET.get('subject')
+    subject_name = request.GET.get('subject_name')
+
+    if subject_id:
+        # Para index.html (usa IDs)
+        topics = Topic.objects.filter(subject_id=subject_id)
+    elif subject_name:
+        # Para profile.html (usa nombres)
+        try:
+            subject = Subject.objects.get(name=subject_name)
+            topics = Topic.objects.filter(subject=subject)
+        except Subject.DoesNotExist:
+            topics = Topic.objects.none()
+    else:
+        topics = Topic.objects.none()
+
+    return JsonResponse({
+        'topics': list(topics.values('id', 'name'))
+    })
 
 def about_view(request):
     support_email = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tutoria.com')
@@ -319,69 +352,116 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import UploadedFile
 
 from .forms import UploadTopicsForm
-from .models import Subject, Topic
+from .models import Subject, Topic, Exam
 import chardet
+
+@login_required
+def filter_exams(request):
+    subject_filter = request.GET.get('subject')
+    topic_filter = request.GET.get('topic')
+
+    exams = Exam.objects.filter(user=request.user)
+
+    if subject_filter:
+        exams = exams.filter(subject_name__icontains=subject_filter)
+    if topic_filter:
+        exams = exams.filter(topic_name__icontains=topic_filter)
+
+    html = render_to_string('core/_exams_list.html', {'exams': exams}, request=request)
+    return JsonResponse({'html': html})
 
 def is_superuser(user):
     return user.is_superuser
 
 # Vista de Cargar Temas de archivo----------------------------------------------------------------------
-#@user_passes_test(is_superuser, login_url='index')
-@login_required
+# views.py
+@user_passes_test(lambda u: u.is_authenticated, login_url='login')
 def upload_topics_view(request):
+    # Verificar plan o permisos
     profile = request.user.userprofile
-    if profile.plan != 'premium':
-        messages.error(request, "Esta funcionalidad está disponible solo para usuarios con plan Premium.")
-        return redirect('index')  # O a profile.html si prefieres mostrar opción de Upgrade
-    # Si es premium, continúa con la carga de temas
+    if not (profile.plan == 'premium' or request.user.is_superuser):
+        messages.error(request, "⚠️ Esta funcionalidad requiere plan Premium o ser administrador.")
+        return redirect('index')
+
     if request.method == 'POST':
         form = UploadTopicsForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file = request.FILES['file']
-
-            # 👇 Nombre del archivo sin extensión → nombre de la asignatura
             subject_name = os.path.splitext(uploaded_file.name)[0].replace('_', ' ').title()
 
-            # 👇 Crear o obtener asignatura
-            subject, created = Subject.objects.get_or_create(name=subject_name)
+            # Decidir si es pública o privada
+            is_public = request.user.is_superuser and 'make_public' in request.POST
 
-            if not created:
-                messages.warning(request, f"La asignatura '{subject_name}' ya existía.")
+            # Crear o obtener asignatura
+            # Decidir si es pública o privada
+            if request.user.is_superuser and 'make_public' in request.POST:
+                # Crear como pública
+                subject, created = Subject.objects.get_or_create(
+                    name=subject_name,
+                    is_public=True,
+                    defaults={'user': None}
+                )
             else:
-                messages.success(request, f"Asignatura '{subject_name}' creada.")
+                # Crear como privada del usuario
+                subject, created = Subject.objects.get_or_create(
+                    name=subject_name,
+                    user=request.user,
+                    is_public=False
+                )
 
             try:
                 raw_data = uploaded_file.read()
                 result = chardet.detect(raw_data)
                 encoding = result['encoding'] or 'utf-8'
                 decoded_file = raw_data.decode(encoding)
-
                 lines = decoded_file.split('\n')
 
                 count = 0
                 for line in lines:
                     if ':' in line:
-                        name, description = line.strip().split(':', 1)
+                        name, desc = line.strip().split(':', 1)
                         Topic.objects.update_or_create(
                             subject=subject,
                             name=name.strip(),
-                            defaults={'description': description.strip()}
+                            defaults={'description': desc.strip()}
                         )
                         count += 1
 
-                messages.success(request, f"Se cargaron {count} temas para '{subject_name}'.")
-            except UnicodeDecodeError as e:
-                messages.error(request, f"Error al decodificar el archivo: {e}")
-            except Exception as e:
-                messages.error(request, f"Error al procesar el archivo: {e}")
+                tipo = "pública" if is_public else "privada"
+                messages.success(request, f"📚 Se cargaron {count} temas en '{subject_name}' ({tipo}).")
 
-        else:
-            messages.error(request, "Formulario inválido.")
+            except Exception as e:
+                messages.error(request, f"Error: {e}")
 
     else:
         form = UploadTopicsForm()
 
-    return render(request, 'core/upload_topics.html', {'form': form})
+    # Mostrar asignaturas: públicas + del usuario
+    subjects = Subject.objects.filter(
+        Q(is_public=True) | Q(user=request.user)
+    ).annotate(topic_count=Count('topic'))
+
+    return render(request, 'core/upload_topics.html', {
+        'form': form,
+        'subjects': subjects,
+        'is_superuser': request.user.is_superuser
+    })
+
+# Borrar Asignatura----------------------------------------------------------------------
+@login_required
+def delete_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+
+    # Solo puede borrar:
+    # - Si es suya (privada)
+    # - O si es pública y es superusuario
+    if subject.user == request.user or (subject.is_public and request.user.is_superuser):
+        subject.delete()
+        messages.success(request, f"Asignatura '{subject.name}' eliminada.")
+    else:
+        messages.error(request, "No tienes permiso para eliminar esta asignatura.")
+
+    return redirect('upload_topics')
 
 # Borrar Conversación----------------------------------------------------------------------
 from .models import Conversation
@@ -407,7 +487,7 @@ from django.http import HttpResponse
 
 @login_required
 def exam_view(request):
-   
+
     questions = request.session.get('exam_questions', [])
     topic_name = request.session.get('exam_topic', 'Tema')
     subject_name = request.session.get('exam_subject', 'Asignatura')
@@ -430,7 +510,7 @@ def parse_exam(text):
         raise ValueError("parse_exam() requiere un texto (str), no una lista u otro tipo")
     text = re.sub(r'\r', '', text)
     lines = [line.strip() for line in text.split('\n') if line.strip()]
-    
+
     questions = []
     current_question = None
 
@@ -526,7 +606,7 @@ def submit_exam(request):
         })
     else:
         return redirect('index')
-    
+
 # Perfil de usuario----------------------------------------------------------------------
 from .models import UserProfile, Conversation
 from django.shortcuts import render
@@ -534,14 +614,26 @@ from .models import UserProfile, Exam
 
 @login_required
 def profile_view(request):
-    # Obtener perfil del usuario
     profile = request.user.userprofile
-    profile.reset_period_if_needed()  # Reinicia cuota diaria si es nuevo día
+    profile.reset_period_if_needed()
 
-    # Obtener últimos exámenes (opcional)
+    # Obtener nombres únicos de asignaturas desde exámenes
+    exam_subject_names = Exam.objects.filter(user=request.user).values_list('subject_name', flat=True).distinct()
+    # Obtener objetos Subject que coincidan
+    #subjects = Subject.objects.filter(name__in=exam_subject_names).order_by('name')
+    subjects = [
+    subject for subject in Subject.objects.all()
+    if any(subject.name.strip().lower() in exam_name.lower() for exam_name in exam_subject_names)
+    ]
+
+    subjects = sorted(subjects, key=lambda s: s.name)
+
+    print("exam_subject_names:", list(exam_subject_names))  # Asegura que se vea como lista
+    subject_details = [(subject.id, subject.name) for subject in subjects]
+    print("subjects (id, name):", subject_details)
+
     exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]
 
-    # Calcular estadísticas (solo si las muestras en la plantilla)
     total_exams = exams.count()
     correct_answers = sum(exam.correct_count for exam in exams)
     total_questions = sum(exam.total_questions for exam in exams)
@@ -550,6 +642,7 @@ def profile_view(request):
     context = {
         'profile': profile,
         'exams': exams,
+        'subjects': subjects,
         'total_exams': total_exams,
         'correct_answers': correct_answers,
         'total_questions': total_questions,
@@ -594,7 +687,7 @@ def create_payment(request):
         return redirect('profile')
 
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-    
+
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -619,7 +712,7 @@ def create_payment(request):
     except Exception as e:
         messages.error(request, f"Error al procesar el pago: {str(e)}")
         return redirect('profile')
-    
+
     # Pago exitoso--------------------------------------------------------------------
 @login_required
 def payment_success(request):
@@ -686,7 +779,7 @@ def transfermovil_view(request):
         'amount_required': amount_required
     }
     return render(request, 'core/transfermovil.html', context)
-   
+
 
 # Chatbot sin IA ---------------------------------------------------
 from django.http import JsonResponse
@@ -698,7 +791,7 @@ def faq_chatbot(request):
         try:
             data = json.loads(request.body)
             question = data.get('question', '').strip().lower()
-            
+
             # Función para quitar acentos y normalizar texto
             def normalize(text):
                 return ''.join(
@@ -737,7 +830,7 @@ def faq_chatbot(request):
 
             answer = "Lo siento, no tengo una respuesta para esa pregunta aún. Contáctanos por correo."
 
-            for key in responses:
+            for key in responses:                
                 if normalized_question in normalize(key):
                     answer = responses[key]
                     break
@@ -747,7 +840,7 @@ def faq_chatbot(request):
             return JsonResponse({'answer': '⚠️ Error al procesar tu pregunta.'})
     else:
         return JsonResponse({'answer': '⚠️ Solo acepto preguntas POST.'})
-    
+
 # Editar Perfil de Usuariofrom django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -804,3 +897,7 @@ def edit_profile_view(request):
             'profile': profile,
             'categories': ProfessionalCategory.choices
         })
+
+def landing(request):
+    """Landing page for medical students"""
+    return render(request, 'core/landing.html')

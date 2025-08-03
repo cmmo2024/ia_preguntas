@@ -150,6 +150,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
             .then(response => response.json())
             .then(data => {
+                // Ordenar los topics por ID
+                data.topics.sort((a, b) => a.id - b.id);
                 topicSelectMain.innerHTML = '<option value="">---------</option>';
                 data.topics.forEach(function (topic) {
                     const option = document.createElement('option');
