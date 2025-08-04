@@ -167,15 +167,36 @@
     <ul id="exam-list" class="mt-3 list-unstyled">
         {% include "core/_exams_list.html" %}
     </ul>
+    <!-- Contenedor de paginación -->
+    <div id="pagination-container"></div>
 </li>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js "></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const subjectSelect = document.getElementById('filter-subject');
     const topicSelect = document.getElementById('filter-topic');
+    const examList = document.getElementById('exam-list');
+    const paginationContainer = document.getElementById('pagination-container'); // Añade este contenedor
 
-    // Cargar temas según asignatura seleccionada (por nombre)
+    // Función para aplicar filtros y paginar
+    function filterExams(page = 1) {
+        const subject = subjectSelect.value;
+        const topic = topicSelect.value;
+
+        $.get("{% url 'filter_exams' %}", {
+            subject: subject,
+            topic: topic,
+            page: page
+        }, function(data) {
+            examList.innerHTML = data.html;
+            paginationContainer.innerHTML = data.pagination_html;
+        }).fail(function() {
+            examList.innerHTML = '<li class="text-danger">Error al cargar exámenes.</li>';
+        });
+    }
+
+    // Cargar temas al cambiar asignatura
     subjectSelect.addEventListener('change', function () {
         const subjectName = this.value;
         topicSelect.innerHTML = '<option value="">Todos los temas</option>';
@@ -192,29 +213,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 option.textContent = topic.name;
                 topicSelect.appendChild(option);
             });
+            filterExams(); // Vuelve a filtrar exámenes
+        }).fail(function() {
+            console.error("Error cargando temas");
             filterExams();
         });
     });
 
-    // Aplicar filtro al cambiar tema
-    topicSelect.addEventListener('change', filterExams);
+    // Cambiar tema
+    topicSelect.addEventListener('change', function () {
+        filterExams();
+    });
 
-    // Botón limpiar
+    // Limpiar filtros
     document.getElementById('clear-filters').addEventListener('click', function () {
         subjectSelect.value = '';
         topicSelect.innerHTML = '<option value="">Todos los temas</option>';
         filterExams();
     });
 
-    // Función para filtrar exámenes vía AJAX
-    function filterExams() {
-        const subject = subjectSelect.value;
-        const topic = topicSelect.value;
+    // Delegación de eventos para paginación
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-page]');
+        if (target && paginationContainer.contains(target)) {
+            e.preventDefault();
+            const page = target.getAttribute('data-page');
+            filterExams(page);
+        }
+    });
 
-        $.get("{% url 'filter_exams' %}", { subject: subject, topic: topic }, function(data) {
-            document.getElementById('exam-list').innerHTML = data.html;
-        });
-    }
+    // Inicializar con primera página
+    filterExams();
 });
 </script>
 

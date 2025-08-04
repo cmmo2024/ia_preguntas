@@ -111,7 +111,7 @@ def index(request):
         conversations = conversations.filter(topic_id=topic_filter)
 
     # Limitamos a últimas 10 conversaciones
-    conversations = conversations.order_by('-created_at')[:10]
+    conversations = conversations.order_by('-created_at')
 
     if request.method == 'POST':
         form_data = request.POST.copy()
@@ -354,21 +354,44 @@ from django.core.files.uploadedfile import UploadedFile
 from .forms import UploadTopicsForm
 from .models import Subject, Topic, Exam
 import chardet
+from django.core.paginator import Paginator
 
 @login_required
 def filter_exams(request):
-    subject_filter = request.GET.get('subject')
-    topic_filter = request.GET.get('topic')
+    subject_filter = request.GET.get('subject', '').strip()
+    topic_filter = request.GET.get('topic', '').strip()
+    page_number = request.GET.get('page', 1)  # Número de página
 
-    exams = Exam.objects.filter(user=request.user)
+    # Filtrar exámenes
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')  # Más reciente primero
 
     if subject_filter:
         exams = exams.filter(subject_name__icontains=subject_filter)
     if topic_filter:
         exams = exams.filter(topic_name__icontains=topic_filter)
 
-    html = render_to_string('core/_exams_list.html', {'exams': exams}, request=request)
-    return JsonResponse({'html': html})
+    # Paginar
+    paginator = Paginator(exams, 10)  # 10 exámenes por página
+    page_obj = paginator.get_page(page_number)
+
+    # Renderizar lista de exámenes
+    html = render_to_string('core/_exams_list.html', {
+        'exams': page_obj  # Pasamos el objeto de página
+    }, request=request)
+
+    # Incluir HTML de paginación
+    pagination_html = render_to_string('core/_pagination.html', {
+        'page_obj': page_obj
+    }, request=request)
+
+    return JsonResponse({
+        'html': html,
+        'pagination_html': pagination_html,
+        'has_next': page_obj.has_next(),
+        'has_previous': page_obj.has_previous(),
+        'number': page_obj.number,
+        'num_pages': paginator.num_pages,
+    })
 
 def is_superuser(user):
     return user.is_superuser
@@ -380,7 +403,7 @@ def upload_topics_view(request):
     # Verificar plan o permisos
     profile = request.user.userprofile
     if not (profile.plan == 'premium' or request.user.is_superuser):
-        messages.error(request, "⚠️ Esta funcionalidad requiere plan Premium o ser administrador.")
+        messages.error(request, "Esta funcionalidad requiere plan Premium o ser administrador.")
         return redirect('index')
 
     if request.method == 'POST':
@@ -632,7 +655,7 @@ def profile_view(request):
     subject_details = [(subject.id, subject.name) for subject in subjects]
     print("subjects (id, name):", subject_details)
 
-    exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')
 
     total_exams = exams.count()
     correct_answers = sum(exam.correct_count for exam in exams)
@@ -723,7 +746,7 @@ def payment_success(request):
     profile.daily_exams = 0
     profile.save()
 
-    messages.success(request, "🎉 ¡Gracias por tu pago! Ahora tienes acceso completo.")
+    messages.success(request, "¡Gracias por tu pago! Ahora tienes acceso completo.")
     return redirect('profile')
 
 # Pago cancelado------------------------------------------------------------------------
@@ -767,7 +790,7 @@ def transfermovil_view(request):
                     profile.daily_ia_requests = 0
                     profile.daily_exams = 0
                     profile.save()
-                    messages.success(request, "🎉 ¡Pago validado! Tu plan ha sido actualizado a Premium.")
+                    messages.success(request, "¡Pago validado! Tu plan ha sido actualizado a Premium.")
                     return redirect('profile')
                 else:
                     messages.error(request, f"El monto del SMS debe ser {amount_required}.")
