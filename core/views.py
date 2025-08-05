@@ -11,6 +11,7 @@ from .forms import QuestionForm, RegisterForm, LoginForm
 from .models import Conversation, Topic
 from dotenv import load_dotenv
 from django.contrib.auth.models import User  # 👈 Añade esta línea
+from django.core.paginator import Paginator
 
 load_dotenv() #Carga variables de entorno
 
@@ -112,6 +113,30 @@ def index(request):
 
     # Limitamos a últimas 10 conversaciones
     conversations = conversations.order_by('-created_at')
+    #=====Nuevo para paginacion----------
+    paginator = Paginator(conversations, 3)  # 10 por página
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # Si es AJAX: devolver solo el HTML de la lista y paginación
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string('core/_conversations.html', {
+            'conversations': page_obj
+        }, request=request)
+
+        pagination_html = render_to_string('core/_pagination.html', {
+            'page_obj': page_obj
+        }, request=request)
+
+        return JsonResponse({
+            'html': html,
+            'pagination_html': pagination_html,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'number': page_obj.number,
+            'num_pages': paginator.num_pages,
+        })
+    #=====Nuevo para paginacion----------
 
     if request.method == 'POST':
         form_data = request.POST.copy()
@@ -211,7 +236,8 @@ def index(request):
                     messages.error(request, "El campo 'Pregunta' es obligatorio.")
                     return render(request, 'core/index.html', {
                         'form': form,
-                        'conversations': conversations,
+                        'conversations': page_obj,  # ✅ Ahora es una página
+                        'page_obj': page_obj,       # ✅ Necesario para _pagination.html
                         'subjects': Subject.objects.all(),
                         'topics': Topic.objects.all(),
                         'subject_filter': subject_filter,
@@ -264,7 +290,8 @@ def index(request):
 
             return render(request, 'core/index.html', {
                 'form': form,
-                'conversations': conversations,
+                'conversations': page_obj,  # ✅ Ahora es una página
+                'page_obj': page_obj,       # ✅ Necesario para _pagination.html
                 'subjects': Subject.objects.all(),
                 'topics': Topic.objects.all(),
                 'subject_filter': subject_filter,
@@ -303,19 +330,15 @@ def index(request):
 
     return render(request, 'core/index.html', {
         'form': form,
-        'conversations': conversations,
+        'conversations': page_obj,  # ✅ Ahora es una página
+        'page_obj': page_obj,       # ✅ Necesario para _pagination.html
         'subjects': subjects,
         'topics': topics,
         'subject_filter': subject_filter,
         'topic_filter': topic_filter
     })
 
-"""   
-def load_topics(request):
-    subject_id = request.GET.get('subject')
-    topics = Topic.objects.filter(subject_id=subject_id).values('id', 'name')
-    return JsonResponse({'topics': list(topics)})
-"""
+
 # views.py
 def load_topics(request):
     subject_id = request.GET.get('subject')
@@ -354,7 +377,6 @@ from django.core.files.uploadedfile import UploadedFile
 from .forms import UploadTopicsForm
 from .models import Subject, Topic, Exam
 import chardet
-from django.core.paginator import Paginator
 
 @login_required
 def filter_exams(request):
