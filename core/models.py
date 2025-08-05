@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import timedelta
 from django.utils import timezone
+from django.db.models import Q
 #import jsonfield
 
  # --------Planes-------------------------------------------------------------------------
@@ -144,6 +145,48 @@ class UserProfile(models.Model):
                 'period_days': 30,
                 'price_cup': 500.00 if self.plan == 'premium' else 0.00
             })
+
+
+    def get_low_performance_areas(self, min_score=70, days=14):
+        """
+        Devuelve asignaturas y temas con rendimiento bajo en los últimos días
+        """
+        from core.models import Exam
+        from datetime import timedelta
+        from django.utils import timezone
+
+        cutoff_date = timezone.now() - timedelta(days=days)
+        
+        exams = Exam.objects.filter(
+            user=self.user,
+            created_at__gte=cutoff_date
+        )
+
+        low_performers = []
+
+        # Agrupar por asignatura
+        subjects = {}
+        for exam in exams:
+            subject = exam.subject_name
+            if subject not in subjects:
+                subjects[subject] = {'total': 0, 'correct': 0, 'count': 0}
+            
+            subjects[subject]['total'] += exam.total_questions
+            subjects[subject]['correct'] += exam.correct_count
+            subjects[subject]['count'] += 1
+
+        for subject, data in subjects.items():
+            if data['total'] == 0:
+                continue
+            avg = (data['correct'] / data['total']) * 100
+            if avg < min_score:
+                low_performers.append({
+                    'type': 'subject',
+                    'name': subject,
+                    'score': round(avg, 1)
+                })
+
+        return low_performers
 
 # --------Asignaturas-------------------------------------------------------------------------
 

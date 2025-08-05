@@ -118,6 +118,21 @@
     </div>
 </div>
 <p> </p>
+<!-- Notificación de bajo rendimiento -->
+{% if weak_areas %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <h6><i class="bi bi-exclamation-triangle-fill"></i> Recomendación semanal</h6>
+        <p class="mb-1">Te sugerimos repasar los siguientes temas para mejorar tu rendimiento:</p>
+        <ul class="mb-0">
+            {% for area in weak_areas %}
+                <li><strong>{{ area.name }}</strong> — {{ area.score }}% de aciertos</li>
+            {% endfor %}
+        </ul>
+        <small class="text-muted">Basado en tus exámenes de las últimas 2 semanas.</small>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endif %}
+
 <li class="list-group-item">
     <h3>Estadísticas de Exámenes:</h3>
     <ul class="mt-3">

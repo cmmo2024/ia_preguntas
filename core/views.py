@@ -673,16 +673,14 @@ def profile_view(request):
 
     subjects = sorted(subjects, key=lambda s: s.name)
 
-    print("exam_subject_names:", list(exam_subject_names))  # Asegura que se vea como lista
-    subject_details = [(subject.id, subject.name) for subject in subjects]
-    print("subjects (id, name):", subject_details)
-
     exams = Exam.objects.filter(user=request.user).order_by('-created_at')
 
     total_exams = exams.count()
     correct_answers = sum(exam.correct_count for exam in exams)
     total_questions = sum(exam.total_questions for exam in exams)
     average_score = round(correct_answers / total_questions * 100, 2) if total_questions else 0
+    # ✅ Nueva: áreas con bajo rendimiento
+    weak_areas = profile.get_low_performance_areas(min_score=70, days=14)
 
     context = {
         'profile': profile,
@@ -692,6 +690,7 @@ def profile_view(request):
         'correct_answers': correct_answers,
         'total_questions': total_questions,
         'average_score': average_score,
+        'weak_areas': weak_areas,  # ✅ Añadido
     }
 
     return render(request, 'core/profile.html', context)
