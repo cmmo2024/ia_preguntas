@@ -127,6 +127,16 @@
         <li>Aciertos: {{ correct_answers }}</li>
     </ul>
 </li>
+<div class="text-center mt-4">
+    <a href="{% url 'performance_stats' %}" 
+       class="btn btn-primary btn-lg px-4 py-3 shadow">
+        <i class="bi bi-bar-chart-line me-2"></i>
+        Ver Estadísticas de Rendimiento
+    </a>
+    <div class="text-muted mt-2 small">
+        Descubre cómo estás progresando
+    </div>
+</div>
 <p> </p>
 <li class="list-group-item">
     <!-- Título y filtros -->

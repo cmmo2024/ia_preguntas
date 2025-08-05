@@ -35,4 +35,5 @@ urlpatterns = [
     path('subject/delete/<int:subject_id>/', views.delete_subject, name='delete_subject'),
     path('ajax/load-topics/', views.load_topics, name='ajax_load_topics'),
     path('ajax/filter-exams/', views.filter_exams, name='filter_exams'),
+    path('estadisticas/', views.performance_stats, name='performance_stats'),
 ]

@@ -942,6 +942,71 @@ def edit_profile_view(request):
             'profile': profile,
             'categories': ProfessionalCategory.choices
         })
+    
+# -----vista para calculos de rendimiento----------------------------------
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Exam
+from datetime import timedelta
+from django.utils import timezone
+
+@login_required
+def performance_stats(request):
+    # Obtener exámenes del usuario
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')
+
+    # Agrupar por asignatura
+    subjects_data = {}
+
+    for exam in exams:
+        subject_name = exam.subject_name
+        topic_name = exam.topic_name
+        score = (exam.correct_count / exam.total_questions) * 100 if exam.total_questions > 0 else 0
+
+        # Inicializar si no existe
+        if subject_name not in subjects_data:
+            subjects_data[subject_name] = {
+                'total_score': 0,
+                'count': 0,
+                'topics': {},
+                'exams': []
+            }
+
+        # Acumular para asignatura
+        subjects_data[subject_name]['total_score'] += score
+        subjects_data[subject_name]['count'] += 1
+        subjects_data[subject_name]['exams'].append(exam)
+
+        # Por tema
+        if topic_name not in subjects_data[subject_name]['topics']:
+            subjects_data[subject_name]['topics'][topic_name] = {
+                'scores': [],
+                'last_score': 0,
+                'best_score': 0
+            }
+        subjects_data[subject_name]['topics'][topic_name]['scores'].append(score)
+        subjects_data[subject_name]['topics'][topic_name]['last_score'] = score
+        subjects_data[subject_name]['topics'][topic_name]['best_score'] = max(
+            subjects_data[subject_name]['topics'][topic_name]['scores']
+        )
+
+    # Calcular promedios y tendencias
+    for subject_name, data in subjects_data.items():
+        avg = data['total_score'] / data['count'] if data['count'] > 0 else 0
+        data['average_score'] = round(avg, 1)
+
+        # Tendencia: comparar últimos 2 exámenes
+        exams_sorted = sorted(data['exams'], key=lambda x: x.created_at)
+        if len(exams_sorted) >= 2:
+            last = (exams_sorted[-1].correct_count / exams_sorted[-1].total_questions) * 100
+            prev = (exams_sorted[-2].correct_count / exams_sorted[-2].total_questions) * 100
+            data['trend'] = 'up' if last > prev else 'down' if last < prev else 'stable'
+        else:
+            data['trend'] = 'stable'
+
+    return render(request, 'core/performance_stats.html', {
+        'subjects_data': subjects_data
+    })
 
 def landing(request):
     """Landing page for medical students"""
