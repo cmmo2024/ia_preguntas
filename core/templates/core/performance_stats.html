@@ -1,0 +1,68 @@
+<!-- templates/core/performance_stats.html -->
+{% extends 'base.html' %}
+
+{% block title %}Estadísticas de Rendimiento{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>📊 Tu Rendimiento Académico</h2>
+    <p class="text-muted">Analiza tus resultados en exámenes por asignatura y tema.</p>
+
+    {% if subjects_data %}
+        {% for subject_name, data in subjects_data.items %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <strong>{{ subject_name }}</strong>
+                <span class="badge bg-light text-dark">
+                    Promedio: {{ data.average_score }}%
+                    {% if data.trend == 'up' %}
+                        <i class="bi bi-caret-up-fill text-success"></i>
+                    {% elif data.trend == 'down' %}
+                        <i class="bi bi-caret-down-fill text-danger"></i>
+                    {% else %}
+                        <i class="bi bi-dash"></i>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <h5>Temas</h5>
+                <ul class="list-group">
+                    {% for topic_name, topic_data in data.topics.items %}
+                        {% with last_score=topic_data.last_score %}
+                            <li class="list-group-item d-flex justify-content-between
+                                {% if last_score < 60 %} bg-danger bg-opacity-10 border-danger border-start-3 text-danger {% endif %}">
+                                <span class="fw-medium">{{ topic_name }}</span>
+                                <span>
+                                    Último: <strong>{{ last_score|floatformat:0 }}%</strong> |
+                                    Mejor: {{ topic_data.best_score|floatformat:0 }}%
+                                    {% if last_score < 60 %}
+                                        <i class="bi bi-exclamation-triangle text-danger ms-2" title="Rendimiento bajo"></i>
+                                    {% endif %}
+                                </span>
+                            </li>
+                        {% endwith %}
+                    {% endfor %}
+                </ul>
+
+                <h5 class="mt-3">Últimos exámenes</h5>
+                <div class="small text-muted">
+                    {% for exam in data.exams|slice:":3" %}
+                    <div class="mb-1">
+                        {{ exam.created_at|date:"d/m H:i" }}: 
+                        {{ exam.correct_count }}/{{ exam.total_questions }}
+                        {% widthratio exam.correct_count exam.total_questions 100|floatformat:0 %}%
+                    </div>
+                    {% empty %}
+                    <p>No hay exámenes.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            No has realizado exámenes aún. ¡Haz uno desde la página principal!
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

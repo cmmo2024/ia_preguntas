@@ -11,6 +11,7 @@ from .forms import QuestionForm, RegisterForm, LoginForm
 from .models import Conversation, Topic
 from dotenv import load_dotenv
 from django.contrib.auth.models import User  # 👈 Añade esta línea
+from django.core.paginator import Paginator
 
 load_dotenv() #Carga variables de entorno
 
@@ -111,7 +112,31 @@ def index(request):
         conversations = conversations.filter(topic_id=topic_filter)
 
     # Limitamos a últimas 10 conversaciones
-    conversations = conversations.order_by('-created_at')[:10]
+    conversations = conversations.order_by('-created_at')
+    #=====Nuevo para paginacion----------
+    paginator = Paginator(conversations, 3)  # 10 por página
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # Si es AJAX: devolver solo el HTML de la lista y paginación
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string('core/_conversations.html', {
+            'conversations': page_obj
+        }, request=request)
+
+        pagination_html = render_to_string('core/_pagination.html', {
+            'page_obj': page_obj
+        }, request=request)
+
+        return JsonResponse({
+            'html': html,
+            'pagination_html': pagination_html,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'number': page_obj.number,
+            'num_pages': paginator.num_pages,
+        })
+    #=====Nuevo para paginacion----------
 
     if request.method == 'POST':
         form_data = request.POST.copy()
@@ -211,7 +236,8 @@ def index(request):
                     messages.error(request, "El campo 'Pregunta' es obligatorio.")
                     return render(request, 'core/index.html', {
                         'form': form,
-                        'conversations': conversations,
+                        'conversations': page_obj,  # ✅ Ahora es una página
+                        'page_obj': page_obj,       # ✅ Necesario para _pagination.html
                         'subjects': Subject.objects.all(),
                         'topics': Topic.objects.all(),
                         'subject_filter': subject_filter,
@@ -264,7 +290,8 @@ def index(request):
 
             return render(request, 'core/index.html', {
                 'form': form,
-                'conversations': conversations,
+                'conversations': page_obj,  # ✅ Ahora es una página
+                'page_obj': page_obj,       # ✅ Necesario para _pagination.html
                 'subjects': Subject.objects.all(),
                 'topics': Topic.objects.all(),
                 'subject_filter': subject_filter,
@@ -303,19 +330,15 @@ def index(request):
 
     return render(request, 'core/index.html', {
         'form': form,
-        'conversations': conversations,
+        'conversations': page_obj,  # ✅ Ahora es una página
+        'page_obj': page_obj,       # ✅ Necesario para _pagination.html
         'subjects': subjects,
         'topics': topics,
         'subject_filter': subject_filter,
         'topic_filter': topic_filter
     })
 
-"""   
-def load_topics(request):
-    subject_id = request.GET.get('subject')
-    topics = Topic.objects.filter(subject_id=subject_id).values('id', 'name')
-    return JsonResponse({'topics': list(topics)})
-"""
+
 # views.py
 def load_topics(request):
     subject_id = request.GET.get('subject')
@@ -357,18 +380,40 @@ import chardet
 
 @login_required
 def filter_exams(request):
-    subject_filter = request.GET.get('subject')
-    topic_filter = request.GET.get('topic')
+    subject_filter = request.GET.get('subject', '').strip()
+    topic_filter = request.GET.get('topic', '').strip()
+    page_number = request.GET.get('page', 1)  # Número de página
 
-    exams = Exam.objects.filter(user=request.user)
+    # Filtrar exámenes
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')  # Más reciente primero
 
     if subject_filter:
         exams = exams.filter(subject_name__icontains=subject_filter)
     if topic_filter:
         exams = exams.filter(topic_name__icontains=topic_filter)
 
-    html = render_to_string('core/_exams_list.html', {'exams': exams}, request=request)
-    return JsonResponse({'html': html})
+    # Paginar
+    paginator = Paginator(exams, 10)  # 10 exámenes por página
+    page_obj = paginator.get_page(page_number)
+
+    # Renderizar lista de exámenes
+    html = render_to_string('core/_exams_list.html', {
+        'exams': page_obj  # Pasamos el objeto de página
+    }, request=request)
+
+    # Incluir HTML de paginación
+    pagination_html = render_to_string('core/_pagination.html', {
+        'page_obj': page_obj
+    }, request=request)
+
+    return JsonResponse({
+        'html': html,
+        'pagination_html': pagination_html,
+        'has_next': page_obj.has_next(),
+        'has_previous': page_obj.has_previous(),
+        'number': page_obj.number,
+        'num_pages': paginator.num_pages,
+    })
 
 def is_superuser(user):
     return user.is_superuser
@@ -380,7 +425,7 @@ def upload_topics_view(request):
     # Verificar plan o permisos
     profile = request.user.userprofile
     if not (profile.plan == 'premium' or request.user.is_superuser):
-        messages.error(request, "⚠️ Esta funcionalidad requiere plan Premium o ser administrador.")
+        messages.error(request, "Esta funcionalidad requiere plan Premium o ser administrador.")
         return redirect('index')
 
     if request.method == 'POST':
@@ -628,16 +673,14 @@ def profile_view(request):
 
     subjects = sorted(subjects, key=lambda s: s.name)
 
-    print("exam_subject_names:", list(exam_subject_names))  # Asegura que se vea como lista
-    subject_details = [(subject.id, subject.name) for subject in subjects]
-    print("subjects (id, name):", subject_details)
-
-    exams = Exam.objects.filter(user=request.user).order_by('-created_at')[:10]
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')
 
     total_exams = exams.count()
     correct_answers = sum(exam.correct_count for exam in exams)
     total_questions = sum(exam.total_questions for exam in exams)
     average_score = round(correct_answers / total_questions * 100, 2) if total_questions else 0
+    # ✅ Nueva: áreas con bajo rendimiento
+    weak_areas = profile.get_low_performance_areas(min_score=70, days=14)
 
     context = {
         'profile': profile,
@@ -647,6 +690,7 @@ def profile_view(request):
         'correct_answers': correct_answers,
         'total_questions': total_questions,
         'average_score': average_score,
+        'weak_areas': weak_areas,  # ✅ Añadido
     }
 
     return render(request, 'core/profile.html', context)
@@ -723,7 +767,7 @@ def payment_success(request):
     profile.daily_exams = 0
     profile.save()
 
-    messages.success(request, "🎉 ¡Gracias por tu pago! Ahora tienes acceso completo.")
+    messages.success(request, "¡Gracias por tu pago! Ahora tienes acceso completo.")
     return redirect('profile')
 
 # Pago cancelado------------------------------------------------------------------------
@@ -767,7 +811,7 @@ def transfermovil_view(request):
                     profile.daily_ia_requests = 0
                     profile.daily_exams = 0
                     profile.save()
-                    messages.success(request, "🎉 ¡Pago validado! Tu plan ha sido actualizado a Premium.")
+                    messages.success(request, "¡Pago validado! Tu plan ha sido actualizado a Premium.")
                     return redirect('profile')
                 else:
                     messages.error(request, f"El monto del SMS debe ser {amount_required}.")
@@ -897,6 +941,71 @@ def edit_profile_view(request):
             'profile': profile,
             'categories': ProfessionalCategory.choices
         })
+    
+# -----vista para calculos de rendimiento----------------------------------
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Exam
+from datetime import timedelta
+from django.utils import timezone
+
+@login_required
+def performance_stats(request):
+    # Obtener exámenes del usuario
+    exams = Exam.objects.filter(user=request.user).order_by('-created_at')
+
+    # Agrupar por asignatura
+    subjects_data = {}
+
+    for exam in exams:
+        subject_name = exam.subject_name
+        topic_name = exam.topic_name
+        score = (exam.correct_count / exam.total_questions) * 100 if exam.total_questions > 0 else 0
+
+        # Inicializar si no existe
+        if subject_name not in subjects_data:
+            subjects_data[subject_name] = {
+                'total_score': 0,
+                'count': 0,
+                'topics': {},
+                'exams': []
+            }
+
+        # Acumular para asignatura
+        subjects_data[subject_name]['total_score'] += score
+        subjects_data[subject_name]['count'] += 1
+        subjects_data[subject_name]['exams'].append(exam)
+
+        # Por tema
+        if topic_name not in subjects_data[subject_name]['topics']:
+            subjects_data[subject_name]['topics'][topic_name] = {
+                'scores': [],
+                'last_score': 0,
+                'best_score': 0
+            }
+        subjects_data[subject_name]['topics'][topic_name]['scores'].append(score)
+        subjects_data[subject_name]['topics'][topic_name]['last_score'] = score
+        subjects_data[subject_name]['topics'][topic_name]['best_score'] = max(
+            subjects_data[subject_name]['topics'][topic_name]['scores']
+        )
+
+    # Calcular promedios y tendencias
+    for subject_name, data in subjects_data.items():
+        avg = data['total_score'] / data['count'] if data['count'] > 0 else 0
+        data['average_score'] = round(avg, 1)
+
+        # Tendencia: comparar últimos 2 exámenes
+        exams_sorted = sorted(data['exams'], key=lambda x: x.created_at)
+        if len(exams_sorted) >= 2:
+            last = (exams_sorted[-1].correct_count / exams_sorted[-1].total_questions) * 100
+            prev = (exams_sorted[-2].correct_count / exams_sorted[-2].total_questions) * 100
+            data['trend'] = 'up' if last > prev else 'down' if last < prev else 'stable'
+        else:
+            data['trend'] = 'stable'
+
+    return render(request, 'core/performance_stats.html', {
+        'subjects_data': subjects_data
+    })
 
 def landing(request):
     """Landing page for medical students"""

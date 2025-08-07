@@ -102,12 +102,14 @@
 <div id="conversations-container">
     {% include "core/_conversations.html" %}
 </div>
+<!-- Contenedor de paginación -->
+<div id="pagination-container"></div>
 
 <!-- Scripts unificados -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js "></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Reconocimiento de voz
+    // 1. Reconocimiento de voz (sin cambios)
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -142,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.warn("Tu navegador no soporta reconocimiento de voz.");
     }
 
-    // 2. Cargar temas dinámicamente según asignatura seleccionada (Formulario principal)
+    // 2. Cargar temas en formulario principal (sin cambios)
     const subjectSelectMain = document.querySelector('#id_subject');
     const topicSelectMain = document.querySelector('#id_topic');
 
@@ -150,7 +152,6 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('{% url "ajax_load_topics" %}?subject=' + subjectId)
             .then(response => response.json())
             .then(data => {
-                // Ordenar los topics por ID
                 data.topics.sort((a, b) => a.id - b.id);
                 topicSelectMain.innerHTML = '<option value="">---------</option>';
                 data.topics.forEach(function (topic) {
@@ -179,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // 3. Filtro de temas en interfaz de usuario (Filtro de búsqueda)
+    // 3. Filtro de temas (UI)
     const subjectFilter = document.getElementById('filter-subject');
     const topicFilter = document.getElementById('filter-topic');
 
@@ -191,7 +192,6 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(`{% url 'ajax_load_topics' %}?subject=${subjectId}`)
                 .then(response => response.json())
                 .then(data => {
-                    const topicFilter = document.getElementById('filter-topic');
                     topicFilter.innerHTML = '<option value="">Todos los temas</option>';
                     const topicFilterValue = "{{ topic_filter }}";
 
@@ -205,22 +205,30 @@ document.addEventListener('DOMContentLoaded', function () {
                         topicFilter.appendChild(option);
                     });
 
-                    applyFilters();
+                    applyFilters(); // Reinicia a página 1
                 });
         });
     }
 
-    // 4. Función para aplicar filtros con AJAX
-    function applyFilters() {
+    // ✅ 4. Función actualizada: applyFilters con paginación
+    function applyFilters(page = 1) {
         const subjectId = document.getElementById("filter-subject").value;
         const topicId = document.getElementById("filter-topic").value;
 
-        $.get("?", { subject: subjectId, topic: topicId }, function(data) {
-            $("#conversations-container").html(data.html);
+        $.get("?", {
+            subject: subjectId,
+            topic: topicId,
+            page: page
+        }, function(data) {
+            document.getElementById('conversations-container').innerHTML = data.html;
+            document.getElementById('pagination-container').innerHTML = data.pagination_html;
+        }).fail(function() {
+            document.getElementById('conversations-container').innerHTML =
+                '<p class="text-danger">Error al cargar conversaciones.</p>';
         });
     }
 
-    // 5. Escuchar cambios en los filtros y botón de limpiar
+    // 5. Eventos de filtros y limpieza
     const subjectSelectFilter = document.getElementById("filter-subject");
     const topicSelectFilter = document.getElementById("filter-topic");
 
@@ -248,13 +256,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                         topicSelectFilter.appendChild(option);
                     });
-
-                    applyFilters();
+                    applyFilters(); // Reinicia a página 1
                 });
         });
 
         topicSelectFilter.addEventListener("change", function () {
-            applyFilters();
+            applyFilters(); // Reinicia a página 1
         });
 
         const clearBtn = document.querySelector("#clear-filters");
@@ -264,10 +271,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById("filter-subject").value = "";
                 document.getElementById("filter-topic").value = "";
                 topicSelectFilter.innerHTML = '<option value="">Todos los temas</option>';
-                applyFilters();
+                applyFilters(); // Reinicia a página 1
             });
         }
     }
+
+    // ✅ 6. Delegación para paginación
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-page]');
+        if (target && document.getElementById('pagination-container').contains(target)) {
+            e.preventDefault();
+            const page = target.getAttribute('data-page');
+            applyFilters(page);
+        }
+    });
+
+    // ✅ 7. Inicializar al cargar
+    applyFilters();
 });
 </script>
 
