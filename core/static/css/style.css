@@ -466,9 +466,6 @@ ul, ol {
 
 .alert.alert-success {
 
-<<<<<<< HEAD
-    background-colo...
-=======
 .alert.alert-danger {
     background-color: #f8d7da;
     color: #721c24;
@@ -583,4 +580,34 @@ ul, ol {
     overflow: hidden;
     text-overflow: ellipsis;
 }
->>>>>>> 959528916b2e6815334547bad415bac54b1aa6cf
+
+/* Dark mode toggle button styles */
+#theme-toggle {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#theme-toggle i {
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+/* Dark mode adjustments for toggle button */
+[data-theme="dark"] #theme-toggle {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] #theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
