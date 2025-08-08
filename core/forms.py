@@ -1,5 +1,6 @@
 from django import forms
 from .models import Subject, Topic
+from django.db import models
 
 IA_MODELS = (
     ('qwen/qwen-2.5-72b-instruct:free', 'Qwen 2.5'),
@@ -8,7 +9,8 @@ IA_MODELS = (
 
 class QuestionForm(forms.Form):
     subject = forms.ModelChoiceField(
-        queryset=Subject.objects.all(), 
+        #queryset=Subject.objects.all(), 
+        queryset=Subject.objects.none(), 
         label="Asignatura", 
         empty_label="Selecciona una asignatura",
         widget=forms.Select(attrs={'class': 'form-select truncate'}))
@@ -27,6 +29,17 @@ class QuestionForm(forms.Form):
         required=False  # 👈 Ahora no es obligatorio
     )
     model = forms.ChoiceField(choices=IA_MODELS, label="Modelo de IA")
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)  # Recibe el usuario
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # ✅ Filtrar asignaturas: públicas o del usuario
+            allowed_subjects = Subject.objects.filter(
+                models.Q(is_public=True) | models.Q(user=user)
+            ).order_by('name')
+            self.fields['subject'].queryset = allowed_subjects
 
 
 from django.core.exceptions import ValidationError

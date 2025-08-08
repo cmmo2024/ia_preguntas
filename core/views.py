@@ -153,7 +153,7 @@ def index(request):
 
     if request.method == 'POST':
         form_data = request.POST.copy()
-        form = QuestionForm(form_data)
+        form = QuestionForm(form_data, user=request.user)
         #-----Chequeo del Plan--------
         if not profile.can_make_request():
             messages.warning(request, "Has alcanzado el límite de peticiones.")
@@ -165,8 +165,12 @@ def index(request):
         if 'subject' in request.POST:
             try:
                 subject_id = int(request.POST.get('subject'))
-                form.fields['topic'].queryset = Topic.objects.filter(subject_id=subject_id)
-            except (ValueError, TypeError):
+                # ✅ Aseguramos que el usuario puede ver esta asignatura
+                subject = Subject.objects.filter(
+                    models.Q(is_public=True) | models.Q(user=request.user)
+                ).get(id=subject_id)
+                form.fields['topic'].queryset = Topic.objects.filter(subject=subject)
+            except (ValueError, TypeError, Subject.DoesNotExist):
                 form.fields['topic'].queryset = Topic.objects.none()
 
         if form.is_valid():
@@ -175,7 +179,10 @@ def index(request):
             question = form.cleaned_data['question']
             selected_model = form.cleaned_data['model']
 
-            # Validar acceso al tema según plan
+            # ✅ Validar acceso al tema según plan y también que pueda ver la asignatura
+            if not (selected_subject.is_public or selected_subject.user == request.user):
+                messages.error(request, "No tienes acceso a esta asignatura.")
+                return redirect('index')
             if request.user.is_authenticated and request.user.userprofile.plan == 'free':
                 first_topic = selected_subject.first_topic()
                 if first_topic and selected_topic.id != first_topic.id:
@@ -251,7 +258,7 @@ def index(request):
                         'form': form,
                         'conversations': page_obj,  # ✅ Ahora es una página
                         'page_obj': page_obj,       # ✅ Necesario para _pagination.html
-                        'subjects': Subject.objects.all(),
+                        'subjects': get_allowed_subjects(request.user),  # ✅
                         'topics': Topic.objects.all(),
                         'subject_filter': subject_filter,
                         'topic_filter': topic_filter
@@ -305,7 +312,7 @@ def index(request):
                 'form': form,
                 'conversations': page_obj,  # ✅ Ahora es una página
                 'page_obj': page_obj,       # ✅ Necesario para _pagination.html
-                'subjects': Subject.objects.all(),
+                'subjects': get_allowed_subjects(request.user),  # ✅
                 'topics': Topic.objects.all(),
                 'subject_filter': subject_filter,
                 'topic_filter': topic_filter
@@ -318,19 +325,31 @@ def index(request):
             'topic': request.session.get('topic_id'),
             'model': request.session.get('model')
         }
-        form = QuestionForm(initial=initial_data)
+        #form = QuestionForm(form_data, user=request.user)
+        form = QuestionForm(initial=initial_data, user=request.user)
 
     # Pasamos todas las asignaturas y temas para los filtros
-    subjects = Subject.objects.all()
+    subjects = get_allowed_subjects(request.user)
+     # Si hay un subject_filter, cargamos solo sus temas
     topics = Topic.objects.all()
-
+    if subject_filter and subject_filter.isdigit():
+        try:
+            subject = Subject.objects.filter(
+                models.Q(is_public=True) | models.Q(user=request.user)
+            ).get(id=int(subject_filter))
+            topics = Topic.objects.filter(subject=subject)
+        except Subject.DoesNotExist:
+            topics = Topic.objects.none()
+    #topics = Topic.objects.all()
+    """
     # Si hay un subject_filter, cargamos solo sus temas
     if subject_filter and subject_filter.isdigit():
         topics = Topic.objects.filter(subject_id=int(subject_filter))
     else:
         topics = Topic.objects.all()
 
-    subjects = Subject.objects.all()
+    #subjects = Subject.objects.all()
+    """
 
     if request.method == 'GET':
     # Si es una solicitud AJAX, devolvemos solo el historial filtrado
@@ -352,7 +371,7 @@ def index(request):
     })
 
 
-# views.py
+# -------Load Temas----------------------------------
 def load_topics(request):
     subject_id = request.GET.get('subject')
     subject_name = request.GET.get('subject_name')
