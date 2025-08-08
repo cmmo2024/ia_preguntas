@@ -90,6 +90,19 @@ def login_view(request):
 
     return render(request, 'core/login.html', {'form': form})
 
+
+# ----Fitra solo Asignaturas del usuario (la usa index)------------------------------
+from django.db import models
+def get_allowed_subjects(user):
+    """
+    Devuelve asignaturas que el usuario puede ver:
+    - Públicas (is_public=True)
+    - Privadas que le pertenecen (user=user)
+    """
+    return Subject.objects.filter(
+        models.Q(is_public=True) | models.Q(user=user)
+    ).distinct().order_by('name')
+
 # Index----Vista de Tutor-IA-------------------------------------------------
 @login_required
 def index(request):

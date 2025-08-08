@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-^rd^0=sfw245bn)655n54g4ml8!m+^*(01m%tjrfqc430h0h3=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 #ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
@@ -63,20 +63,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'ia_preguntas.urls'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
 
 WSGI_APPLICATION = 'ia_preguntas.wsgi.application'
 
@@ -195,8 +181,16 @@ TEMPLATES = [
     },
 ]
 
+# URL para acceder a archivos estáticos
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# Carpeta donde se recolectan todos los archivos estáticos (resultado de collectstatic)
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # ✅ Nueva carpeta: staticfiles/
+
+# Carpetas adicionales donde Django busca archivos estáticos (tu código)
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # ✅ Tu carpeta de desarrollo
+]
 # STATICFILES_DIRS = [BASE_DIR / "static"]
 SUPPORT_EMAIL = "cmmoprogram@gmail.com"
 # Celery Configuration
@@ -209,3 +203,12 @@ CELERY_TIMEZONE = 'America/Havana'  # Cambia a tu zona horaria
 
 # Django Celery Beat - Para tareas periódicas
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Configuración de email para Gmail
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'cmmoprogram@gmail.com'  # Tu correo
+EMAIL_HOST_PASSWORD = 'eyvs xazm kwjo zrwo'  # App Password (sin espacios si copias mal)
+DEFAULT_FROM_EMAIL = 'cmmoprogram@gmail.com'
