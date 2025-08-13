@@ -14,8 +14,8 @@
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0">Rendimiento por Asignatura</h5>
             </div>
-            <div class="card-body">
-                <canvas id="subjectChart" height="100"></canvas>
+            <div class="card-body" style="overflow-y: auto; min-height: 400px;">
+                <canvas id="subjectChart"></canvas>
             </div>
         </div>
 
@@ -80,10 +80,16 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ subjects_data|json_script:"subjects-data" }}
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Usamos json_script para mayor seguridad
         const subjectsData = JSON.parse(document.getElementById('subjects-data').textContent);
+
+        if (Object.keys(subjectsData).length === 0) {
+            console.log("No hay datos para mostrar en el gráfico.");
+            return;
+        }
 
         const labels = Object.keys(subjectsData);
         const avgScores = labels.map(subject => subjectsData[subject].average_score);
@@ -95,10 +101,11 @@
         });
 
         const ctx = document.getElementById('subjectChart');
-        if (!ctx) {
-            console.error('Canvas no encontrado');
-            return;
-        }
+        if (!ctx) return;
+
+        // Calcular altura dinámica: 40px por barra (ajusta según necesidad)
+        const chartHeight = Math.max(400, labels.length * 40); // Mínimo 400px, luego +40 por barra
+        ctx.parentNode.style.height = `${chartHeight}px`;  // Ajusta el contenedor
 
         new Chart(ctx, {
             type: 'bar',
@@ -109,41 +116,57 @@
                     data: avgScores,
                     backgroundColor: backgroundColors,
                     borderColor: '#000',
-                    borderWidth: 1
+                    borderWidth: 1,
+                    barThickness: 20,           // 👈 Ancho fijo de barras (puedes probar 15, 25, etc.)
+                    // maxBarThickness: 30,      // Opcional: límite máximo
                 }]
             },
             options: {
+                indexAxis: 'y',
                 responsive: true,
+                maintainAspectRatio: false,  // ← Esencial para que respete el tamaño del contenedor
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return `Promedio: ${context.parsed.y}%`;
+                                return `Rendimiento: ${context.parsed.x}%`;
                             }
                         }
                     }
                 },
                 scales: {
-                    y: {
+                    x: {
                         beginAtZero: true,
                         max: 100,
                         title: {
                             display: true,
-                            text: 'Porcentaje de aciertos'
+                            text: '%',
+                            font: { size: 14, weight: 'bold' }
                         }
                     },
-                    x: {
+                    y: {
                         title: {
                             display: true,
-                            text: 'Asignaturas'
-                        }
+                            text: 'Asignatura',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        ticks: {
+                            padding: 10  // Espacio entre etiquetas
+                        },
+                        grid: { display: false }  // Limpia el eje Y
+                    }
+                },
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 10,
+                        top: 10,
+                        bottom: 10
                     }
                 }
             }
         });
     });
 </script>
-
-{{ subjects_data|json_script:"subjects-data" }}
 {% endblock %}
