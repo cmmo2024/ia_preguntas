@@ -9,6 +9,17 @@
     <p class="text-muted">Analiza tus resultados en exámenes por asignatura y tema.</p>
 
     {% if subjects_data %}
+        <!-- Gráfico de barras -->
+        <div class="card mb-5">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Rendimiento por Asignatura</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="subjectChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Datos por asignatura -->
         {% for subject_name, data in subjects_data.items %}
         <div class="card mb-4">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -59,10 +70,80 @@
             </div>
         </div>
         {% endfor %}
+
     {% else %}
         <div class="alert alert-info">
             No has realizado exámenes aún. ¡Haz uno desde la página principal!
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Usamos json_script para mayor seguridad
+        const subjectsData = JSON.parse(document.getElementById('subjects-data').textContent);
+
+        const labels = Object.keys(subjectsData);
+        const avgScores = labels.map(subject => subjectsData[subject].average_score);
+
+        const backgroundColors = avgScores.map(score => {
+            if (score >= 80) return 'rgba(40, 167, 69, 0.7)';
+            if (score >= 60) return 'rgba(255, 193, 7, 0.7)';
+            return 'rgba(220, 53, 69, 0.7)';
+        });
+
+        const ctx = document.getElementById('subjectChart');
+        if (!ctx) {
+            console.error('Canvas no encontrado');
+            return;
+        }
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Promedio de Aciertos (%)',
+                    data: avgScores,
+                    backgroundColor: backgroundColors,
+                    borderColor: '#000',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Promedio: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Porcentaje de aciertos'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Asignaturas'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{{ subjects_data|json_script:"subjects-data" }}
 {% endblock %}

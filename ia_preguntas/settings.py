@@ -188,9 +188,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # ✅ Nueva carpeta: staticfiles/
 
 # Carpetas adicionales donde Django busca archivos estáticos (tu código)
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # ✅ Tu carpeta de desarrollo
-]
+#STATICFILES_DIRS = [
+#    BASE_DIR / 'static',  # ✅ Tu carpeta de desarrollo
+#]
 # STATICFILES_DIRS = [BASE_DIR / "static"]
 SUPPORT_EMAIL = "cmmoprogram@gmail.com"
 # Celery Configuration

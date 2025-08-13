@@ -23,7 +23,6 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
-from django.contrib.auth import login, authenticate
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import RegisterForm
@@ -985,15 +984,14 @@ from django.utils import timezone
 def performance_stats(request):
     # Obtener exámenes del usuario
     exams = Exam.objects.filter(user=request.user).order_by('-created_at')
-
-    # Agrupar por asignatura
+    
     subjects_data = {}
-
+    
     for exam in exams:
         subject_name = exam.subject_name
         topic_name = exam.topic_name
         score = (exam.correct_count / exam.total_questions) * 100 if exam.total_questions > 0 else 0
-
+        
         # Inicializar si no existe
         if subject_name not in subjects_data:
             subjects_data[subject_name] = {
@@ -1002,12 +1000,20 @@ def performance_stats(request):
                 'topics': {},
                 'exams': []
             }
-
+        
         # Acumular para asignatura
         subjects_data[subject_name]['total_score'] += score
         subjects_data[subject_name]['count'] += 1
-        subjects_data[subject_name]['exams'].append(exam)
-
+        
+        # ✅ Solo agregamos datos serializables
+        subjects_data[subject_name]['exams'].append({
+            'correct_count': exam.correct_count,
+            'total_questions': exam.total_questions,
+            'created_at': exam.created_at.isoformat(),
+            'topic_name': exam.topic_name,
+            'score': round(score, 1)
+        })
+        
         # Por tema
         if topic_name not in subjects_data[subject_name]['topics']:
             subjects_data[subject_name]['topics'][topic_name] = {
@@ -1020,17 +1026,17 @@ def performance_stats(request):
         subjects_data[subject_name]['topics'][topic_name]['best_score'] = max(
             subjects_data[subject_name]['topics'][topic_name]['scores']
         )
-
+    
     # Calcular promedios y tendencias
     for subject_name, data in subjects_data.items():
         avg = data['total_score'] / data['count'] if data['count'] > 0 else 0
         data['average_score'] = round(avg, 1)
-
+        
         # Tendencia: comparar últimos 2 exámenes
-        exams_sorted = sorted(data['exams'], key=lambda x: x.created_at)
+        exams_sorted = sorted(data['exams'], key=lambda x: x['created_at'])
         if len(exams_sorted) >= 2:
-            last = (exams_sorted[-1].correct_count / exams_sorted[-1].total_questions) * 100
-            prev = (exams_sorted[-2].correct_count / exams_sorted[-2].total_questions) * 100
+            last = exams_sorted[-1]['score']
+            prev = exams_sorted[-2]['score']
             data['trend'] = 'up' if last > prev else 'down' if last < prev else 'stable'
         else:
             data['trend'] = 'stable'
