@@ -466,9 +466,7 @@ ul, ol {
 
 .alert.alert-success {
 
-<<<<<<< HEAD
-    background-colo...
-=======
+
 .alert.alert-danger {
     background-color: #f8d7da;
     color: #721c24;
@@ -584,34 +582,27 @@ ul, ol {
     text-overflow: ellipsis;
 }
 
-/* Dark mode toggle button styles */
+
+/* Theme toggle button styles - borderless */
 #theme-toggle {
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    color: gray;
+    padding: 0.5rem;
+    margin-left: 0.5rem;
     transition: all 0.3s ease;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 0.375rem;
 }
 
 #theme-toggle:hover {
     background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
 }
 
 #theme-toggle i {
-    font-size: 1rem;
-    color: #ffffff;
-}
-
-/* Dark mode adjustments for toggle button */
-[data-theme="dark"] #theme-toggle {
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] #theme-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    font-size: 1.2rem;
+    color: gray;
 }
 
 /* Landing page inspired card styles for consistency */

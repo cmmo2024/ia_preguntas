@@ -5,10 +5,8 @@
 {% block content %}
 <!-- Load login-specific CSS -->
 <link rel="stylesheet" href="{% static 'css/login.css' %}">
-
-<div class="login-page">
 <div class="container animate-fade-in" style="max-width: 380px;">
-<h3 class="hero-text mb-4">Iniciar sesión</h3>
+<h3>Iniciar sesión</h3>
 
 {% if messages %}
 <div class="container mt-3">
@@ -53,7 +51,7 @@
             {% endif %}
         </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
+    <button type="submit" class="btn btn-primary">Entrar</button>
 </form>
 
 <!-- Botones sociales -->
@@ -96,5 +94,4 @@ function mostrarMensaje(event) {
     alert("⏳ Esta funcionalidad está pendiente. Pronto disponible.");
 }
 </script>
-</div>
 {% endblock %}

@@ -22,11 +22,6 @@
                     Tutor-IA
                 </a>
 
-        <button id="theme-toggle" style="border: none; background: transparent; font-size: 1.5rem;" type="button" title="Toggle dark mode">
-            <i class="bi bi-moon-fill" style="font-size: 1.5rem; margin-right: 0.5rem; color: #000;"></i>
-        </button>
-
-
         <!-- Botón hamburguesa -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,13 +31,6 @@
         <!-- Barra de navegación -->
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav">
-                <!-- Dark mode toggle 
-                <li class="nav-item me-2">
-                    <button id="theme-toggle" class="btn btn-outline-secondary" type="button" title="Toggle dark mode">
-                        <i class="bi bi-moon-fill"></i>
-                    </button>
-                </li>
-                -->
                 {% if user.is_authenticated %}
 
                     <!-- Avatar con nombre de usuario -->
@@ -82,6 +70,13 @@
                     <li class="nav-item">
                         <a class="nav-link fw-bold" href="{% url 'logout' %}">Cerrar sesión</a>
                     </li>
+                    
+                    <li class="nav-item d-flex align-items-center">
+                        <button id="theme-toggle" class="btn nav-link p-0" type="button" title="Cambiar tema">
+                            <i class="bi bi-moon-fill"></i>
+                        </button>
+                    </li>
+
 
                 {% else %}
                     <!-- Opciones visibles para todos -->
@@ -94,6 +89,12 @@
                     <!-- Iniciar sesión SIEMPRE AL FINAL del menú NO autenticado -->
                     <li class="nav-item">
                         <a class="nav-link fw-bold" href="{% url 'login' %}">Iniciar sesión</a>
+                    </li>
+                    
+                    <li class="nav-item d-flex align-items-center">
+                        <button id="theme-toggle" class="btn nav-link p-0" type="button" title="Cambiar tema">
+                            <i class="bi bi-moon-fill"></i>
+                        </button>
                     </li>
 
                 {% endif %}
